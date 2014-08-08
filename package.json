@@ -1,0 +1,11 @@
+{
+  "name": "wp-uploads-sync",
+  "version": "0.0.0",
+  "description": "On attachment upload, delete, edit, run a script to rsync uploads between servers.",
+  "author": "johnshopkins",
+  "license": "MIT",
+  "devDependencies": {
+    "gulp": "^3.6.2",
+    "gulp-tasks": "git+ssh://git@github.com:johnshopkins/gulp-tasks.git"
+  }
+}
