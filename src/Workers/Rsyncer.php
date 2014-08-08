@@ -41,6 +41,15 @@ class Rsyncer
     {
         $workload = json_decode($job->workload());
         echo $this->getDate() . " Uploads sync triggered from {$workload->trigger}.\n";
+
+        $file = "/home/webuser/wordpress-sync.sh";
+        
+        if (file_exists($file)) {
+          shell_exec($file);
+        } else {
+          $this->logger->addAlert("{$file} is unavailabe. Images are NOT being synced between servers. " . __FILE__ . " on line " + __LINE__);
+        }
+        
     }
 
     protected function getDate()
