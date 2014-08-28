@@ -6,6 +6,8 @@ Author: johnshopkins
 Version: 0.0
 */
 
+use Secrets\Secret;
+
 class UploadsSyncMain
 {
   public function __construct($logger, $deps = array())
@@ -14,8 +16,14 @@ class UploadsSyncMain
 
       $this->gearmanClient = isset($deps["gearmanClient"]) ? $deps["gearmanClient"] : new \GearmanClient();
 
-      // add only the local server (the one wp-admin is locked to)
-      $this->gearmanClient->addServer("10.181.192.109");
+      $servers = Secret::get("jhu", ENV, "servers");
+      if (!$servers) {
+        $wp_logger->addAlert("Servers unavailable for Gearman " . __FILE__ . " on line " + __LINE__);
+        die();
+      }
+      $server = array_shift($servers);
+
+      $this->gearmanClient->addServer($server->hostname);
 
       /**
        * Use this action to hook into when an image
@@ -45,6 +53,7 @@ class UploadsSyncMain
       add_action("delete_attachment", function () {
         $this->sync("delete_attachment WP hook");
       });
+    
     }
 
   }
