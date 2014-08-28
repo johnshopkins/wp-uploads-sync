@@ -18,7 +18,7 @@ class UploadsSyncMain
 
       $servers = Secret::get("jhu", ENV, "servers");
       if (!$servers) {
-        $wp_logger->addAlert("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
+        $wp_logger->addCritical("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
         die();
       }
       $server = array_shift($servers);
