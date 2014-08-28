@@ -12,48 +12,49 @@ class UploadsSyncMain
 {
   public function __construct($logger, $deps = array())
   {
-    $this->gearmanClient = isset($deps["gearmanClient"]) ? $deps["gearmanClient"] : new \GearmanClient();
+    if (defined("ENV") && (ENV != "local" && ENV != "staging")) {
 
-    $servers = Secret::get("jhu", ENV, "servers");
+      $this->gearmanClient = isset($deps["gearmanClient"]) ? $deps["gearmanClient"] : new \GearmanClient();
 
-    if ($servers) {
-
-      foreach ($servers as $server) {
-        $this->gearmanClient->addServer($server->hostname);
+      $servers = Secret::get("jhu", ENV, "servers");
+      if (!$servers) {
+        $wp_logger->addAlert("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
+        die();
       }
+      $server = array_shift($servers);
 
-    } else {
-      $this->logger->addAlert("Servers unavailable for Gearman " . __FILE__ . " on line " + __LINE__);
+      $this->gearmanClient->addServer($server->hostname);
+
+      /**
+       * Use this action to hook into when an image
+       * is cropped uisng the crop-thumbnails plugin.
+       * Also catches when an attachment is added.
+       */
+      add_action("wp_update_attachment_metadata", function ($data) {
+        $this->sync("wp_update_attachment_metadata");
+        return $data;
+      });
+
+      // add_action("add_attachment", function () {
+      //   $this->sync("add_attachment WP hook");
+      // });
+
+      add_action("edit_attachment", function () {
+        $this->sync("edit_attachment WP hook");
+      });
+
+      /**
+       * This fires BEFORE WordPress has actually
+       * deleted the file from the server, so rsync
+       * has a chance of missing deleted images
+       * when it runs. The next time it runs, it
+       * shoud catch it.
+       */
+      add_action("delete_attachment", function () {
+        $this->sync("delete_attachment WP hook");
+      });
+    
     }
-
-    /**
-     * Use this action to hook into when an image
-     * is cropped uisng the crop-thumbnails plugin.
-     * Also catches when an attachment is added.
-     */
-    add_action("wp_update_attachment_metadata", function ($data) {
-      $this->sync("wp_update_attachment_metadata");
-      return $data;
-    });
-
-    // add_action("add_attachment", function () {
-    //   $this->sync("add_attachment WP hook");
-    // });
-
-    add_action("edit_attachment", function () {
-      $this->sync("edit_attachment WP hook");
-    });
-
-    /**
-     * This fires BEFORE WordPress has actually
-     * deleted the file from the server, so rsync
-     * has a chance of missing deleted images
-     * when it runs. The next time it runs, it
-     * shoud catch it.
-     */
-    add_action("delete_attachment", function () {
-      $this->sync("delete_attachment WP hook");
-    });
 
   }
 

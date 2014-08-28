@@ -1,5 +1,6 @@
 {
   "name": "johnshopkins/wp-uploads-sync",
+  "version": "0.0.0",
   "type": "wordpress-plugin",
   "description": "On attachment upload, delete, edit, run a script to rsync uploads between servers.",
   "license": "MIT",

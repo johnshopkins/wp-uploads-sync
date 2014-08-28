@@ -45,9 +45,9 @@ class Rsyncer
         $file = "/home/webuser/wordpress-sync.sh";
         
         if (file_exists($file)) {
-          shell_exec($file);
+          shell_exec("sh {$file}");
         } else {
-          $this->logger->addAlert("{$file} is unavailabe. Images are NOT being synced between servers. " . __FILE__ . " on line " + __LINE__);
+          $this->logger->addAlert("{$file} is unavailabe. Images are NOT being synced between servers. " . __FILE__ . " on line " . __LINE__);
         }
         
     }
