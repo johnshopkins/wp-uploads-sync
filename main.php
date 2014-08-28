@@ -15,7 +15,7 @@ class UploadsSyncMain
       $this->gearmanClient = isset($deps["gearmanClient"]) ? $deps["gearmanClient"] : new \GearmanClient();
 
       // add only the local server (the one wp-admin is locked to)
-      $this->gearmanClient->addServer("127.0.0.1");
+      $this->gearmanClient->addServer("10.181.192.109");
 
       /**
        * Use this action to hook into when an image
