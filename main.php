@@ -6,25 +6,14 @@ Author: johnshopkins
 Version: 0.0
 */
 
-use Secrets\Secret;
-
 class UploadsSyncMain
 {
   public function __construct($logger, $deps = array())
   {
     $this->gearmanClient = isset($deps["gearmanClient"]) ? $deps["gearmanClient"] : new \GearmanClient();
 
-    $servers = Secret::get("jhu", ENV, "servers");
-
-    if ($servers) {
-
-      foreach ($servers as $server) {
-        $this->gearmanClient->addServer($server->hostname);
-      }
-
-    } else {
-      $this->logger->addAlert("Servers unavailable for Gearman " . __FILE__ . " on line " + __LINE__);
-    }
+    // add only the local server (the one wp-admin is locked to)
+    $this->gearmanClient->addServer("127.0.0.1");
 
     /**
      * Use this action to hook into when an image
