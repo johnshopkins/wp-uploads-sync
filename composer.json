@@ -1,6 +1,6 @@
 {
   "name": "johnshopkins/wp-uploads-sync",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "wordpress-plugin",
   "description": "On attachment upload, delete, edit, run a script to rsync uploads between servers.",
   "license": "MIT",
@@ -11,15 +11,16 @@
       "homepage": "https://github.com/johnshopkins"
     }
   ],
-  "require": {
-
-  },
+  "require": {},
   "require-dev": {
     "phpunit/phpunit": "4.0.*"
   },
   "autoload": {
-    "psr-4" : {
-      "UploadsSync\\" : ["src/", "tests/"]
+    "psr-4": {
+      "UploadsSync\\": [
+        "src/",
+        "tests/"
+      ]
     }
   }
 }
