@@ -1,6 +1,6 @@
 {
   "name": "wp-uploads-sync",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "On attachment upload, delete, edit, run a script to rsync uploads between servers.",
   "author": "johnshopkins",
   "license": "MIT",
