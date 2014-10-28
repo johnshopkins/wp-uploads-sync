@@ -42,7 +42,7 @@ class Rsyncer
         $workload = json_decode($job->workload());
         echo $this->getDate() . " Uploads sync triggered from {$workload->trigger}.\n";
 
-        $file = "/opt/scripts/wordprss-sync.sh";
+        $file = "/opt/scripts/wordpress-sync.sh";
         
         if (file_exists($file)) {
           shell_exec("sh {$file}");
