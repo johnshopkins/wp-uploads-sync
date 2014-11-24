@@ -42,12 +42,11 @@ class Rsyncer
         $workload = json_decode($job->workload());
         echo $this->getDate() . " Uploads sync triggered from {$workload->trigger}.\n";
 
-        $file = "/opt/scripts/wordpress-sync.sh";
-        
-        if (file_exists($file)) {
-          shell_exec("sh {$file}");
-        } else {
-          $this->logger->addCritical("{$file} is unavailabe. Images are NOT being synced between servers. " . __FILE__ . " on line " . __LINE__);
+        $file = "/var/www/sites/jhu/current/public/assets/uploadstrigger.txt";
+        $success = file_put_contents($file, "sync");
+
+        if ($success === false) {
+          $this->logger->addCritical("{$file} could not be written. Images are NOT being synced between servers. " . __FILE__ . " on line " . __LINE__);
         }
         
     }
