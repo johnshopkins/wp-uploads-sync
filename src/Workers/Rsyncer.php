@@ -36,7 +36,7 @@ class Rsyncer
     {
         $this->worker->addFunction("sync_uploads", array($this, "syncUploads"));
     }
-    
+
     public function syncUploads(\GearmanJob $job)
     {
         $workload = json_decode($job->workload());
@@ -48,7 +48,7 @@ class Rsyncer
         if ($success === false) {
           $this->logger->addCritical("{$file} could not be written. Images are NOT being synced between servers. " . __FILE__ . " on line " . __LINE__);
         }
-        
+
     }
 
     protected function getDate()
