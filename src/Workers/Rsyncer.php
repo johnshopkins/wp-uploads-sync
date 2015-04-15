@@ -58,7 +58,7 @@ class Rsyncer
         $destination = "/366916/assets/uploads";
 
         // rsync files to Akamai using `apache` upload account
-        $command = "rsync -az --delete {$source} {$username}@jhuwww.upload.akamai.com::{$destination} 2>&1 > /dev/null";
+        $command = "rsync -az --delete {$source} {$username}@jhuwww.upload.akamai.com::{$username}/{$destination} 2>&1 > /dev/null";
         $run = exec($command, $output, $return);
 
         var_dump($output);
