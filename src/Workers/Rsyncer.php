@@ -61,9 +61,6 @@ class Rsyncer
         $command = "rsync -az --delete {$source} {$username}@jhuwww.upload.akamai.com::{$username}/{$destination} 2>&1 > /dev/null";
         $run = exec($command, $output, $return);
 
-        var_dump($output);
-        var_dump($return);
-
         if ($return > 0) {
           // see http://wpkg.org/Rsync_exit_codes for rsync error codes
           echo $this->getDate() . " Failed to rsync uploads to Akamai.\n";
