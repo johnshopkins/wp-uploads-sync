@@ -2,6 +2,8 @@
 
 namespace UploadsSync\Workers;
 
+use Secrets\Secret;
+
 class Rsyncer
 {
   /**
@@ -42,11 +44,29 @@ class Rsyncer
         $workload = json_decode($job->workload());
         echo $this->getDate() . " Uploads sync triggered from {$workload->trigger}.\n";
 
-        $file = "/var/www/sites/jhu/current/public/assets/uploads/trigger.txt";
-        $success = file_put_contents($file, "sync");
 
-        if ($success === false) {
-          $this->logger->addCritical("{$file} could not be written. Images are NOT being synced between servers. " . __FILE__ . " on line " . __LINE__);
+        // get username/password from secrets file
+        $auth = Secret::get("jhu", ENV, "plugins", "wp-uploads-sync");
+        $username = $auth->username;
+        $password = $auth->password;
+
+        // set password env variable
+        putenv("RSYNC_PASSWORD={$auth->password}");
+
+        // set source and destination
+        $source = "/var/www/sites/jhu/current/public/assets/uploads/.";
+        $destination = "/366916/assets/uploads";
+
+        // rsync files to Akamai using `apache` upload account
+        $command = "rsync -az --delete {$source} {$username}@jhuwww.upload.akamai.com::{$username}/{$destination} 2>&1 > /dev/null";
+        $run = exec($command, $output, $return);
+
+        if ($return > 0) {
+          // see http://wpkg.org/Rsync_exit_codes for rsync error codes
+          echo $this->getDate() . " Failed to rsync uploads to Akamai.\n";
+          $this->logger->addCritical("Uploads could not be rsynced to Akamai. Rsync returned error code {$return}. in " . __FILE__ . " on line " . __LINE__);
+        } else {
+          echo $this->getDate() . " Successfully rsynced uploads to Akamai.\n";
         }
 
     }
