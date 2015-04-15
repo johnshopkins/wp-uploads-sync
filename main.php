@@ -62,7 +62,7 @@ class UploadsSyncMain
   {
     // wait for uploads to sync
     $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
-      "trigger" => "add_attachment"
+      "trigger" => "wp_update_attachment_metadata"
     )));
 
     // clear cache of image that was just added
