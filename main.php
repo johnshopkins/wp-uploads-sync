@@ -14,7 +14,7 @@ class UploadsSyncMain
   {
     if (defined("ENV") && (ENV != "local" && ENV != "staging")) {
 
-      $this->$cacheCleaner = $$cacheCleaner;
+      $this->cacheCleaner = $cacheCleaner;
 
       $this->gearmanClient = isset($deps["gearmanClient"]) ? $deps["gearmanClient"] : new \GearmanClient();
 
