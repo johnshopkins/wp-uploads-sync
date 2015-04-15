@@ -60,11 +60,13 @@ class UploadsSyncMain
 
   public function newImage($data, $id)
   {
-    $this->gearmanClient->doBackground("sync_uploads_clear_cache", json_encode(array(
-      "trigger" => "add_attachment",
-      "id" => $id,
-      "cacheCleaner" => $this->cacheCleaner
+    // wait for uploads to sync
+    $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
+      "trigger" => "add_attachment"
     )));
+
+    // clear cache of image that was just added
+    $this->cacheCleaner->clear_cache($id);
 
     return $data;
   }
