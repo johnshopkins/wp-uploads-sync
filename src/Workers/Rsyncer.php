@@ -37,67 +37,41 @@ class Rsyncer
     protected function addFunctions()
     {
         $this->worker->addFunction("sync_uploads", array($this, "syncUploads"));
-        $this->worker->addFunction("sync_uploads_clear_cache", array($this, "syncUploadsAndClearCache"));
     }
 
     public function syncUploads(\GearmanJob $job)
     {
-      $workload = json_decode($job->workload());
-      $this->sync($workload->trigger);
-      echo "---\n";
-    }
+        $workload = json_decode($job->workload());
+        echo $this->getDate() . " Uploads sync triggered from {$workload->trigger}.\n";
 
-    public function syncUploadsAndClearCache(\GearmanJob $job)
-    {
-      $workload = json_decode($job->workload());
-      $success = $this->sync($workload->trigger);
 
-      if ($success) {
-        echo $this->getDate() . " Rsync is complete, ititializing cache clearing.\n";
-        $this->clearCache($workload->id, $workload->cacheCleaner);
-      }
+        // get username/password from secrets file
+        $auth = Secret::get("jhu", ENV, "plugins", "wp-uploads-sync");
+        $username = $auth->username;
+        $password = $auth->password;
 
-      echo "---\n";
-    }
+        // set password env variable
+        putenv("RSYNC_PASSWORD={$auth->password}");
 
-    public function sync($trigger)
-    {
-      echo $this->getDate() . " Uploads sync triggered from {$workload->trigger}.\n";
+        // set source and destination
+        $source = "/var/www/sites/jhu/current/public/assets/uploads/.";
+        $destination = "/366916/assets/uploads";
 
-      // get username/password from secrets file
-      $auth = Secret::get("jhu", ENV, "plugins", "wp-uploads-sync");
-      $username = $auth->username;
-      $password = $auth->password;
+        // rsync files to Akamai using `apache` upload account
+        $command = "rsync -az --delete {$source} {$username}@jhuwww.upload.akamai.com::{$destination} 2>&1 > /dev/null";
+        $run = exec($command, $output, $return);
 
-      // set password env variable
-      putenv("RSYNC_PASSWORD={$auth->password}");
+        var_dump($output);
+        var_dump($return);
 
-      // set source and destination
-      $source = "/var/www/sites/jhu/current/public/assets/uploads/.";
-      $destination = "/366916/assets/uploads";
+        if ($return > 0) {
+          // see http://wpkg.org/Rsync_exit_codes for rsync error codes
+          echo $this->getDate() . " Failed to rsync uploads to Akamai.\n";
+          $this->logger->addCritical("Uploads could not be rsynced to Akamai. Rsync returned error code {$return}. in " . __FILE__ . " on line " . __LINE__);
+        } else {
+          echo $this->getDate() . " Successfully rsynced uploads to Akamai.\n";
+        }
 
-      // rsync files to Akamai using `apache` upload account
-      $command = "rsync -az --delete {$source} {$username}@jhuwww.upload.akamai.com::{$destination} 2>&1 > /dev/null";
-      $run = exec($command, $output, $return);
-
-      var_dump($output);
-      var_dump($return);
-
-      if ($return > 0) {
-        // see http://wpkg.org/Rsync_exit_codes for rsync error codes
-        echo $this->getDate() . " Failed to rsync uploads to Akamai.\n";
-        $this->logger->addCritical("Uploads could not be rsynced to Akamai. Rsync returned error code {$return}. in " . __FILE__ . " on line " . __LINE__);
-        return false;
-      } else {
-        echo $this->getDate() . " Successfully rsynced uploads to Akamai.\n";
-        return true;
-      }
-
-    }
-
-    protected function clearCache($id, $cacheCleaner)
-    {
-      $cacheCleaner->clear_cache($id);
     }
 
     protected function getDate()
