@@ -10,17 +10,20 @@ use Secrets\Secret;
 
 class UploadsSyncMain
 {
-  public function __construct($logger, $deps = array())
+  public function __construct($logger, $cacheCleaner, $deps = array())
   {
     if (defined("ENV") && (ENV != "local" && ENV != "staging")) {
+
+      $this->$cacheCleaner = $$cacheCleaner;
 
       $this->gearmanClient = isset($deps["gearmanClient"]) ? $deps["gearmanClient"] : new \GearmanClient();
 
       $servers = Secret::get("jhu", ENV, "servers");
+
       if (!$servers) {
         $wp_logger->addCritical("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
-        die();
       }
+
       $server = array_shift($servers);
 
       $this->gearmanClient->addServer($server->hostname);
@@ -30,16 +33,13 @@ class UploadsSyncMain
        * is cropped uisng the crop-thumbnails plugin.
        * Also catches when an attachment is added.
        */
-      add_action("wp_update_attachment_metadata", function ($data) {
-        $this->sync("wp_update_attachment_metadata");
-        return $data;
-      });
+      add_action("wp_update_attachment_metadata", array($this, "newImage"), 10, 2);
 
       // add_action("add_attachment", function () {
       //   $this->sync("add_attachment WP hook");
       // });
 
-      add_action("edit_attachment", function () {
+      add_action("edit_attachment", function ($id) {
         $this->sync("edit_attachment WP hook");
       });
 
@@ -50,12 +50,23 @@ class UploadsSyncMain
        * when it runs. The next time it runs, it
        * shoud catch it.
        */
-      add_action("delete_attachment", function () {
+      add_action("delete_attachment", function ($id) {
         $this->sync("delete_attachment WP hook");
       });
-    
+
     }
 
+  }
+
+  public function newImage($data, $id)
+  {
+    $this->gearmanClient->doBackground("sync_uploads_clear_cache", json_encode(array(
+      "trigger" => "add_attachment",
+      "id" => $id,
+      "cacheCleaner" => $this->cacheCleaner
+    )));
+
+    return $data;
   }
 
   public function sync($trigger = null)
@@ -66,4 +77,4 @@ class UploadsSyncMain
   }
 }
 
-new UploadsSyncMain($wp_logger);
+new UploadsSyncMain($wp_logger, $jhu_cache_clearer);
