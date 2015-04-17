@@ -14,11 +14,11 @@
   "repositories": [
     {
       "type": "vcs",
-      "url": "git@github.com:jenwachter/AkamaiOPEN-edgegrid-php.git"
+      "url": "git@github.com:jenwachter/akamaiopen-edgegrid-php.git"
     }
   ],
   "require": {
-    "jenwachter/AkamaiOPEN-edgegrid-php": "dev-master"
+    "jenwachter/akamaiopen-edgegrid-php": "dev-master"
   },
   "require-dev": {
     "phpunit/phpunit": "4.0.*"
