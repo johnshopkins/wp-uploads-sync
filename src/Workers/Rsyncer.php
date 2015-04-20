@@ -96,20 +96,23 @@ class Rsyncer
       // run request
       $response = $client->request();
 
+      // respond to error
       if ($response["error"]) {
         echo $this->getDate() . " An error occured whhile invalidating the cache of updated files:\n";
         print_r($response["error"]);
         return;
       }
 
+      // respond to successful request
       if ($response["body"]) {
         $responseBody = json_decode($response["body"]);
         echo $this->getDate() . " Cache of updated files successfully invalidated.\n";
         echo $this->getDate() . " Invalidation will take an estimated {$responseBody->estimatedSeconds} seconds.\n";
-        echo $this->getDate() . " Progress can be viewed at: https://{$auth->host}{$responseBody->progressUri}\n";
+        echo $this->getDate() . " Progress can be viewed at: {$responseBody->progressUri}\n";
         return;
       }
 
+      // respond in case neither error nor success
       echo $this->getDate() . " No response or error from Akamai when trying to invalidate cache of attachment #{$workload->id}.\n";
       $this->logger->addCritical("No response or error from Akamai when trying to invalidate cache of attachment #{$workload->id} in " . __FILE__ . " on line " . __LINE__, $response);
 
