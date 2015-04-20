@@ -78,6 +78,10 @@ class UploadsSyncMain
       "trigger" => "wp_update_attachment_metadata"
     )));
 
+    $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
+      "id" => $id
+    )));
+
     $this->cacheCleaner->clear_cache($id);
 
     return $data;
