@@ -80,7 +80,7 @@ class Rsyncer
       $urls = $this->getAttachmentUrls($workload->id);
 
       $auth = Secret::get("akamai", "rsync");
-      $verbose = true;
+      $verbose = false;
       $client = new \Akamai\EdgeGrid($verbose, $auth);
 
       // setup request
