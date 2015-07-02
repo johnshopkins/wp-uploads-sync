@@ -57,11 +57,11 @@ class UploadsSyncMain
      * shoud catch it.
      */
     add_action("delete_attachment", function ($id) {
-      $this->sync("delete_attachment WP hook");
+      $this->sync($id, "delete_attachment WP hook");
     });
 
     add_action("edit_attachment", function ($id) {
-      $this->sync("edit_attachment WP hook");
+      $this->sync($id, "edit_attachment WP hook");
     });
   }
 
@@ -75,7 +75,8 @@ class UploadsSyncMain
   public function newImage($data, $id)
   {
     $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
-      "trigger" => "wp_update_attachment_metadata"
+      "trigger" => "wp_update_attachment_metadata",
+      "file" => get_attached_file($id)
     )));
 
     $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
@@ -93,10 +94,11 @@ class UploadsSyncMain
    * @param  string $trigger WordPress action
    * @return null
    */
-  public function sync($trigger = null)
+  public function sync($id, $trigger = null)
   {
     $this->gearmanClient->doBackground("sync_uploads", json_encode(array(
-      "trigger" => $trigger
+      "trigger" => $trigger,
+      "file" => get_attached_file($id)
     )));
   }
 }
