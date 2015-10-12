@@ -63,8 +63,8 @@ class Rsyncer
 
         if ($return > 0) {
           // see http://wpkg.org/Rsync_exit_codes for rsync error codes
-          echo $this->getDate() . " Failed to rsync uploads to Akamai. Rsync returned error code {$return}.\n";
-          $this->logger->addCritical("Uploads could not be rsynced to Akamai. Rsync returned error code {$return}. in " . __FILE__ . " on line " . __LINE__);
+          echo $this->getDate() . " Failed to rsync uploads to Akamai. File: {$workload->file}. Rsync returned error code {$return}.\n";
+          $this->logger->addCritical("Uploads could not be rsynced to Akamai. File: {$workload->file}. Rsync returned error code {$return}. in " . __FILE__ . " on line " . __LINE__);
         } else {
           echo $this->getDate() . " Successfully rsynced uploads to Akamai.\n";
         }
