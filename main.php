@@ -83,7 +83,8 @@ class UploadsSyncMain
       "id" => $id
     )));
 
-    $this->cacheCleaner->clear_cache($id);
+    // clear endpoint
+    $this->gearmanClient->doHighBackground("api_clear_cache", json_encode(array("id" => $id)));
 
     return $data;
   }
