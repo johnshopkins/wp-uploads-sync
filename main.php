@@ -97,10 +97,17 @@ class UploadsSyncMain
    */
   public function sync($id, $trigger = null)
   {
-    $this->gearmanClient->doBackground("sync_uploads", json_encode(array(
+    $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
       "trigger" => $trigger,
       "file" => get_attached_file($id)
     )));
+
+    $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
+      "id" => $id
+    )));
+
+    // clear endpoint
+    $this->gearmanClient->doHighBackground("api_clear_cache", json_encode(array("id" => $id)));
   }
 }
 
