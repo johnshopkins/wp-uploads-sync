@@ -78,11 +78,6 @@ class Rsyncer
 
       $urls = $this->getAttachmentUrls($workload->id);
 
-      print_r(json_encode(array(
-        "objects" => $urls,
-        "action" => "invalidate"
-      ), JSON_UNESCAPED_SLASHES));
-
       $auth = Secret::get("akamai", "rsync");
       $verbose = false;
       $client = new \Akamai\EdgeGrid($verbose, $auth);
@@ -109,11 +104,17 @@ class Rsyncer
 
       // respond to successful request
       if ($response["body"]) {
+        
         $responseBody = json_decode($response["body"]);
-        print_r($responseBody);
-        echo $this->getDate() . " Cache of updated files successfully invalidated.\n";
-        // echo $this->getDate() . " Invalidation will take an estimated {$responseBody->estimatedSeconds} seconds.\n";
-        // echo $this->getDate() . " Progress can be viewed at: {$responseBody->progressUri}\n";
+
+        if ($responseBody->httpStatus == 201) {
+          echo $this->getDate() . " Cache of updated files successfully invalidated.\n";
+          echo $this->getDate() . " Invalidation will take an estimated {$responseBody->estimatedSeconds} seconds.\n";
+        } else {
+          echo $this->getDate() . " Cache of updated files NOT invalidated.\n";
+          print_r($responseBody);
+        }
+
         return;
       }
 
