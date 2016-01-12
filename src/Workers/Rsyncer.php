@@ -78,7 +78,10 @@ class Rsyncer
 
       $urls = $this->getAttachmentUrls($workload->id);
 
-      var_dump($urls);
+      print_r(json_encode(array(
+        "objects" => $urls,
+        "action" => "invalidate"
+      ), JSON_UNESCAPED_SLASHES));
 
       $auth = Secret::get("akamai", "rsync");
       $verbose = false;
@@ -141,7 +144,7 @@ class Rsyncer
       $urls[] = wp_get_attachment_url($id);
 
       // get rid of empty elements (files like PDF will not have thumbnail urls)
-      return array_filter($urls);
+      return array_values(array_filter($urls));
     }
 
     protected function getDate()
