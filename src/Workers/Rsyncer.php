@@ -105,6 +105,7 @@ class Rsyncer
       // respond to successful request
       if ($response["body"]) {
         $responseBody = json_decode($response["body"]);
+        print_r($responseBody);
         echo $this->getDate() . " Cache of updated files successfully invalidated.\n";
         // echo $this->getDate() . " Invalidation will take an estimated {$responseBody->estimatedSeconds} seconds.\n";
         // echo $this->getDate() . " Progress can be viewed at: {$responseBody->progressUri}\n";
