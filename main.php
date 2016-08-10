@@ -10,12 +10,12 @@ use Secrets\Secret;
 
 class UploadsSyncMain
 {
-  public function __construct($logger, $cacheCleaner)
+  public function __construct($logger)
   {
     // do not run this plugin on local or staging
 		if (defined("ENV") && (ENV == "local" || ENV == "staging")) return;
 
-    $this->cacheCleaner = $cacheCleaner;
+    $this->logger = $logger;
     $this->setupGearmanClient();
     $this->setupActions();
   }
@@ -111,4 +111,4 @@ class UploadsSyncMain
   }
 }
 
-new UploadsSyncMain($wp_logger, $jhu_cache_clearer);
+new UploadsSyncMain($dependencies["logger_wp"]);
