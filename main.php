@@ -18,6 +18,23 @@ class UploadsSyncMain
     $this->logger = $logger;
     $this->setupGearmanClient();
     $this->setupActions();
+
+    add_action("admin_enqueue_scripts", array($this, "addStyles"));
+  }
+
+  /**
+   * Remove the "edit image" button from the media popup and the
+   * stand-alone media page. WordPress does not have any hooks to
+   * allow me to know when the images need to be rsynced again.
+   * Also, this kind of editing should be done preupload.
+   */
+  public function addStyles()
+  {
+    // media popup
+    wp_add_inline_style("list-tables", ".wp_attachment_image input[id^=imgedit-open-btn-] { display: none; }");
+
+    // standalone media page
+    wp_add_inline_style("media", ".attachment-media-view .edit-attachment { display: none; }");
   }
 
   /**
