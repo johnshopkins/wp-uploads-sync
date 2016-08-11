@@ -12,29 +12,12 @@ class UploadsSyncMain
 {
   public function __construct($logger)
   {
-    // do not run this plugin on local or staging
-		if (defined("ENV") && (ENV == "local" || ENV == "staging")) return;
+    // // do not run this plugin on local or staging
+		// if (defined("ENV") && (ENV == "local" || ENV == "staging")) return;
 
     $this->logger = $logger;
     $this->setupGearmanClient();
     $this->setupActions();
-
-    add_action("admin_enqueue_scripts", array($this, "addStyles"));
-  }
-
-  /**
-   * Remove the "edit image" button from the media popup and the
-   * stand-alone media page. WordPress does not have any hooks to
-   * allow me to know when the images need to be rsynced again.
-   * Also, this kind of editing should be done preupload.
-   */
-  public function addStyles()
-  {
-    // media popup
-    wp_add_inline_style("list-tables", ".wp_attachment_image input[id^=imgedit-open-btn-] { display: none; }");
-
-    // standalone media page
-    wp_add_inline_style("media", ".attachment-media-view .edit-attachment { display: none; }");
   }
 
   /**
@@ -60,11 +43,48 @@ class UploadsSyncMain
   protected function setupActions()
   {
     /**
-     * Use this action to hook into when an image
-     * is cropped uisng the crop-thumbnails plugin.
-     * Also catches when an attachment is added.
+     * Cannot use `add_attachment` to detect when an attachment has been
+     * added because it runs before the metadata is created. We need to
+     * hook into this filter, which runs just before the metadata is
+     * added (there is no action at this moment), but gives us acces to
+     * the metadata
+     * @var string
      */
-    add_action("wp_update_attachment_metadata", array($this, "newImage"), 10, 2);
+    add_filter("wp_update_attachment_metadata", function ($meta, $id) {
+
+        if (empty($meta)) {
+
+          // regular file
+          $url = get_attached_file($id);
+
+          $this->logger->addInfo("wp_update_attachment_metadata", array(
+            "id" => $id,
+            "url" => $url
+          ));
+
+        } else {
+
+          // image
+
+          $originalFile = $meta["file"]; // 2016/08/hogsmeade.jpg
+
+          // what about regular files???
+          $files = array_values(array_map(function ($crop) {
+            return $crop["file"]; // hogsmeade-360x240.jpg
+          }, $meta["sizes"]));
+
+          $this->logger->addInfo("wp_update_attachment_metadata", array(
+            "id" => $id,
+            "original_file" => $originalFile,
+            "files" => $files
+          ));
+        }
+
+      }
+
+      return $meta;
+
+    }, 10, 2);
 
     /**
      * This fires BEFORE WordPress has actually
@@ -74,36 +94,9 @@ class UploadsSyncMain
      * shoud catch it.
      */
     add_action("delete_attachment", function ($id) {
-      $this->sync($id, "delete_attachment WP hook");
+      $this->logger->addInfo("delete_attachment");
+      // $this->sync($id, "delete_attachment WP hook");
     });
-
-    add_action("edit_attachment", function ($id) {
-      $this->sync($id, "edit_attachment WP hook");
-    });
-  }
-
-  /**
-   * Syncs images to NetStorage. Waits for the rsync
-   * to finish and then clears the cache of the image,
-   * now that its metadata is available in NetStorage.
-   * @param array   $data Attachment meta data.
-   * @param integer $id   Attachment ID
-   */
-  public function newImage($data, $id)
-  {
-    $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
-      "trigger" => "wp_update_attachment_metadata",
-      "file" => get_attached_file($id)
-    )));
-
-    $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
-      "id" => $id
-    )));
-
-    // clear endpoint
-    $this->gearmanClient->doHighBackground("api_clear_cache", json_encode(array("id" => $id)));
-
-    return $data;
   }
 
   /**
@@ -123,8 +116,7 @@ class UploadsSyncMain
       "id" => $id
     )));
 
-    // clear endpoint
-    $this->gearmanClient->doHighBackground("api_clear_cache", json_encode(array("id" => $id)));
+    // add a hook here for jhu.edu to clear its cache
   }
 }
 
