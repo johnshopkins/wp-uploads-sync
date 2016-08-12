@@ -56,33 +56,36 @@ class UploadsSyncMain
      */
     add_filter("wp_update_attachment_metadata", function ($meta, $id) {
 
-      // urls of files to rsync
+      // filepaths to rsync
       $paths = [];
 
-      if (empty($meta)) {
+      // get file path on server
+      $uploadsDir = wp_upload_dir();
+      $uploadsBasedir = $uploadsDir["basedir"]; // /var/www/html/hub/public/assets/uploads
+      $file = $meta["file"]; // 2016/08/filename.jpg
+      $filepath = "{$uploadsBasedir}/{$file}"; // /var/www/html/hub/public/assets/uploads/2016/08/filename.jpg
+      $paths[] = $filepath;
 
-        // non-image file
-        $paths[] = get_attached_file($id);
+      // get directory path on akamai
+      $basepath = get_home_path(); // /var/www/html/hub/public/
+      $uploadsPath = $uploadsDir["path"]; // /var/www/html/hub/public/assets/uploads/2016/08
+      $relative = str_replace($basepath, "", $uploadsDir["path"]); // assets/uploads/2016/08
 
-      } else {
+      // get crop filepaths
 
-        // image
+      if (!empty($meta)) {
 
-        $uploadDir = $this->getUploadsPath($meta["file"]);
-
-        // original file
-        $paths[] = $uploadsDir . "/" . basename($meta["file"]);
+        // image -- regular files have no meta
 
         // crops
-        $paths = array_values(array_map(function ($crop) use ($uploadDir) {
-          return $uploadDir . "/" . $crop["file"]; // hogsmeade-360x240.jpg
-        }, $meta["sizes"]));
+        foreach ($meta["sizes"] as $crop) {
+          $file = $crop["file"]; // filename.jpg
+          $paths[] = $uploadsBasedir . "/" . $relative . "/"  . $file;
+        }
 
       }
 
-      $this->logger->addInfo("wp_update_attachment_metadata", array(
-        "paths" => $paths
-      ));
+      $this->sync($paths, $relative);
 
       return $meta;
 
@@ -96,8 +99,17 @@ class UploadsSyncMain
      * shoud catch it.
      */
     add_action("delete_attachment", function ($id) {
-      // $meta = get_post_meta($id);
-      // $this->logger->addInfo("delete_attachment", array("meta" => $meta));
+      $meta = get_post_meta($id);
+      $this->logger->addInfo("delete_attachment", array("meta" => $meta));
+
+      $file = $meta["_wp_attached_file"];
+
+      if (isset($meta["_wp_attachment_metadata"])) {
+
+        // image
+        $crops = $meta["_wp_attachment_metadata"]["crops"];
+
+      }
 
       // non-image file meta: {"urls":["/var/www/html/hub/public/assets/uploads/2016/08/SrDeveloper.docx"]}
       // image file meta: {"meta":{"_wp_attached_file":["2016/08/paper.peach_.gif"],"_wp_attachment_metadata":["a:5:{s:5:\"width\";i:300;s:6:\"height\";i:300;s:4:\"file\";s:24:\"2016/08/paper.peach_.gif\";s:5:\"sizes\";a:1:{s:9:\"thumbnail\";a:4:{s:4:\"file\";s:24:\"paper.peach_-300x240.gif\";s:5:\"width\";i:300;s:6:\"height\";i:240;s:9:\"mime-type\";s:9:\"image/gif\";}}s:10:\"image_meta\";a:12:{s:8:\"aperture\";s:1:\"0\";s:6:\"credit\";s:0:\"\";s:6:\"camera\";s:0:\"\";s:7:\"caption\";s:0:\"\";s:17:\"created_timestamp\";s:1:\"0\";s:9:\"copyright\";s:0:\"\";s:12:\"focal_length\";s:1:\"0\";s:3:\"iso\";s:1:\"0\";s:13:\"shutter_speed\";s:1:\"0\";s:5:\"title\";s:0:\"\";s:11:\"orientation\";s:1:\"0\";s:8:\"keywords\";a:0:{}}}"]}}
@@ -107,38 +119,25 @@ class UploadsSyncMain
   }
 
   /**
-   * Get the absolute path of the directory
-   * into which the given file was uploaded.
-   * @param  string $filepath Relative file path (ex: 2016/08/hogsmeade.jpg)
-   * @return string Absolute path of upload directory (ex: /var/www/html/hub/public/assets/uploads/2016/08)
+   * Syncs images to NetStorage.
+   * @param  array  $paths    Filepaths
+   * @param  string $rsyncTo  Relative path in Akamai to rsync images to (ex: assets/uploads/2016/08)
    */
-  public function getUploadsPath($filepath)
+  public function sync($paths, $rsyncTo)
   {
-    $uploadInfo = wp_upload_dir();
-    $uploadsPath = $uploadInfo["basedir"]; // /var/www/html/hub/public/assets/uploads
+    $this->logger->addInfo("sync", array(
+      "paths" => $path,
+      "rsyncTo" => $rsyncTo
+    ));
 
-    $pathinfo = pathinfo($filepath);
-    $dirname = $pathinfo["dirname"]; // 2016/08
-
-    return $uploadsPath . "/" . $dirname;
-  }
-
-  /**
-   * Syncs images to NetStorage, but doesn't wait
-   * around for the rsync command to complete.
-   * @param  string $trigger WordPress action
-   * @return null
-   */
-  public function sync($id, $trigger = null)
-  {
-    $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
-      "trigger" => $trigger,
-      "file" => get_attached_file($id)
-    )));
-
-    $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
-      "id" => $id
-    )));
+    // $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
+    //   "trigger" => $trigger,
+    //   "file" => get_attached_file($id)
+    // )));
+    //
+    // $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
+    //   "id" => $id
+    // )));
 
     do_action("rsync_complete", $id, $file);
   }
