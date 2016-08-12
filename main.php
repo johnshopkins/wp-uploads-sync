@@ -18,6 +18,28 @@ class UploadsSyncMain
     $this->logger = $logger;
     $this->setupGearmanClient();
     $this->setupActions();
+
+    add_action("admin_init", function () {
+
+      $id = 624;
+      $meta = get_post_meta($id, "_wp_attachment_metadata", true);
+      $file = new UploadsSync\Attachment($id, $meta);
+
+      echo "UPLOAD";
+      print_r(array(
+        "paths" => $file->paths,
+        "akamaiPath" => $file->akamaiPath
+      ));
+
+      echo "DELETE";
+      print_r(array(
+        "filenames" => $file->filenames,
+        "localPath" => $file->directory,
+        "akamaiPath" => $file->akamaiPath
+      ));
+      die();
+
+    });
   }
 
   /**
@@ -56,36 +78,8 @@ class UploadsSyncMain
      */
     add_filter("wp_update_attachment_metadata", function ($meta, $id) {
 
-      // filepaths to rsync
-      $paths = [];
-
-      // get file path on server
-      $uploadsDir = wp_upload_dir();
-      $uploadsBasedir = $uploadsDir["basedir"]; // /var/www/html/hub/public/assets/uploads
-      $file = $meta["file"]; // 2016/08/filename.jpg
-      $filepath = "{$uploadsBasedir}/{$file}"; // /var/www/html/hub/public/assets/uploads/2016/08/filename.jpg
-      $paths[] = $filepath;
-
-      // get directory path on akamai
-      $basepath = get_home_path(); // /var/www/html/hub/public/
-      $uploadsPath = $uploadsDir["path"]; // /var/www/html/hub/public/assets/uploads/2016/08
-      $relative = str_replace($basepath, "", $uploadsDir["path"]); // assets/uploads/2016/08
-
-      // get crop filepaths
-
-      if (!empty($meta)) {
-
-        // image -- regular files have no meta
-
-        // crops
-        foreach ($meta["sizes"] as $crop) {
-          $file = $crop["file"]; // filename.jpg
-          $paths[] = $uploadsBasedir . "/" . $relative . "/"  . $file;
-        }
-
-      }
-
-      $this->sync($paths, $relative);
+      $file = new UploadsSync\Attachment($id, $meta);
+      $this->sync($file->paths, $file->akamaiPath);
 
       return $meta;
 
@@ -99,35 +93,28 @@ class UploadsSyncMain
      * shoud catch it.
      */
     add_action("delete_attachment", function ($id) {
+
       $meta = get_post_meta($id);
-      $this->logger->addInfo("delete_attachment", array("meta" => $meta));
+      $meta = isset($meta["_wp_attachment_metadata"]) ? $meta["_wp_attachment_metadata"] : array();
 
-      $file = $meta["_wp_attached_file"];
+      $file = new UploadsSync\Attachment($id, $meta);
+      $this->delete($localPath, $file->akamaiPath, $filenames);
 
-      if (isset($meta["_wp_attachment_metadata"])) {
+      // $this->logger->addInfo("delete_attachment", array("meta" => $meta));
 
-        // image
-        $crops = $meta["_wp_attachment_metadata"]["crops"];
-
-      }
-
-      // non-image file meta: {"urls":["/var/www/html/hub/public/assets/uploads/2016/08/SrDeveloper.docx"]}
-      // image file meta: {"meta":{"_wp_attached_file":["2016/08/paper.peach_.gif"],"_wp_attachment_metadata":["a:5:{s:5:\"width\";i:300;s:6:\"height\";i:300;s:4:\"file\";s:24:\"2016/08/paper.peach_.gif\";s:5:\"sizes\";a:1:{s:9:\"thumbnail\";a:4:{s:4:\"file\";s:24:\"paper.peach_-300x240.gif\";s:5:\"width\";i:300;s:6:\"height\";i:240;s:9:\"mime-type\";s:9:\"image/gif\";}}s:10:\"image_meta\";a:12:{s:8:\"aperture\";s:1:\"0\";s:6:\"credit\";s:0:\"\";s:6:\"camera\";s:0:\"\";s:7:\"caption\";s:0:\"\";s:17:\"created_timestamp\";s:1:\"0\";s:9:\"copyright\";s:0:\"\";s:12:\"focal_length\";s:1:\"0\";s:3:\"iso\";s:1:\"0\";s:13:\"shutter_speed\";s:1:\"0\";s:5:\"title\";s:0:\"\";s:11:\"orientation\";s:1:\"0\";s:8:\"keywords\";a:0:{}}}"]}}
-
-      // $this->sync($id, "delete_attachment WP hook");
     });
   }
 
   /**
    * Syncs images to NetStorage.
-   * @param  array  $paths    Filepaths
-   * @param  string $rsyncTo  Relative path in Akamai to rsync images to (ex: assets/uploads/2016/08)
+   * @param  array  $paths       Filepaths
+   * @param  string $akamaiPath  Relative path in Akamai to rsync images to (ex: assets/uploads/2016/08)
    */
-  public function sync($paths, $rsyncTo)
+  public function sync($paths, $akamaiPath)
   {
     $this->logger->addInfo("sync", array(
       "paths" => $path,
-      "rsyncTo" => $rsyncTo
+      "akamaiPath" => $akamaiPath
     ));
 
     // $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
@@ -140,6 +127,11 @@ class UploadsSyncMain
     // )));
 
     do_action("rsync_complete", $id, $file);
+  }
+
+  public function delete($localPath, $akamaiPath, $filenames)
+  {
+
   }
 }
 
