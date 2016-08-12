@@ -18,28 +18,6 @@ class UploadsSyncMain
     $this->logger = $logger;
     $this->setupGearmanClient();
     $this->setupActions();
-
-    add_action("admin_init", function () {
-
-      $id = 624;
-      $meta = get_post_meta($id, "_wp_attachment_metadata", true);
-      $file = new UploadsSync\Attachment($id, $meta);
-
-      echo "UPLOAD";
-      print_r(array(
-        "paths" => $file->paths,
-        "akamaiPath" => $file->akamaiPath
-      ));
-
-      echo "DELETE";
-      print_r(array(
-        "filenames" => $file->filenames,
-        "localPath" => $file->directory,
-        "akamaiPath" => $file->akamaiPath
-      ));
-      die();
-
-    });
   }
 
   /**
@@ -94,11 +72,9 @@ class UploadsSyncMain
      */
     add_action("delete_attachment", function ($id) {
 
-      $meta = get_post_meta($id);
-      $meta = isset($meta["_wp_attachment_metadata"]) ? $meta["_wp_attachment_metadata"] : array();
-
+      $meta = get_post_meta($id, "_wp_attachment_metadata", true);
       $file = new UploadsSync\Attachment($id, $meta);
-      $this->delete($localPath, $file->akamaiPath, $filenames);
+      $this->delete($file->directory, $file->akamaiPath, $file->filenames);
 
       // $this->logger->addInfo("delete_attachment", array("meta" => $meta));
 
@@ -113,7 +89,7 @@ class UploadsSyncMain
   public function sync($paths, $akamaiPath)
   {
     $this->logger->addInfo("sync", array(
-      "paths" => $path,
+      "paths" => $paths,
       "akamaiPath" => $akamaiPath
     ));
 
@@ -125,13 +101,19 @@ class UploadsSyncMain
     // $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
     //   "id" => $id
     // )));
-
-    do_action("rsync_complete", $id, $file);
+    //
+    // do_action("rsync_complete", $id, $file);
   }
 
   public function delete($localPath, $akamaiPath, $filenames)
   {
+    // only the original file was in $filenames -- missing crops
 
+    $this->logger->addInfo("delete", array(
+      "localPath" => $localPath,
+      "akamaiPath" => $akamaiPath,
+      "filenames" => $filenames
+    ));
   }
 }
 
