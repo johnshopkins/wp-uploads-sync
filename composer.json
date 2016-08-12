@@ -11,18 +11,6 @@
       "url": "git@github.com:jenwachter/akamai-open-edgegrid-php.git"
     }
   ],
-  "authors": [
-    {
-      "name": "johnshopkins",
-      "homepage": "https://github.com/johnshopkins"
-    }
-  ],
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "git@github.com:jenwachter/akamai-open-edgegrid-php.git"
-    }
-  ],
   "require": {
     "jenwachter/akamai-open-edgegrid-php": "dev-master"
   },
