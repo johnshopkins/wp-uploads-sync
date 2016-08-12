@@ -43,44 +43,46 @@ class UploadsSyncMain
   protected function setupActions()
   {
     /**
-     * Cannot use `add_attachment` to detect when an attachment has been
-     * added because it runs before the metadata is created. We need to
-     * hook into this filter, which runs just before the metadata is
-     * added (there is no action at this moment), but gives us acces to
-     * the metadata
+     * Register custom actions
+     */
+    add_action("rsync_complete", function () {
+      $this->logger->addInfo("rsync_complete");
+    });
+
+    /**
+     * Catches when an attachment is created (`add_attachment`
+     * runs before metadata is even created) or modified.
      * @var string
      */
     add_filter("wp_update_attachment_metadata", function ($meta, $id) {
 
-        if (empty($meta)) {
+      // urls of files to rsync
+      $paths = [];
 
-          // regular file
-          $url = get_attached_file($id);
+      if (empty($meta)) {
 
-          $this->logger->addInfo("wp_update_attachment_metadata", array(
-            "id" => $id,
-            "url" => $url
-          ));
+        // non-image file
+        $paths[] = get_attached_file($id);
 
-        } else {
+      } else {
 
-          // image
+        // image
 
-          $originalFile = $meta["file"]; // 2016/08/hogsmeade.jpg
+        $uploadDir = $this->getUploadsPath($meta["file"]);
 
-          // what about regular files???
-          $files = array_values(array_map(function ($crop) {
-            return $crop["file"]; // hogsmeade-360x240.jpg
-          }, $meta["sizes"]));
+        // original file
+        $paths[] = $uploadsDir . "/" . basename($meta["file"]);
 
-          $this->logger->addInfo("wp_update_attachment_metadata", array(
-            "id" => $id,
-            "original_file" => $originalFile,
-            "files" => $files
-          ));
-        }
+        // crops
+        $paths = array_values(array_map(function ($crop) use ($uploadDir) {
+          return $uploadDir . "/" . $crop["file"]; // hogsmeade-360x240.jpg
+        }, $meta["sizes"]));
 
       }
+
+      $this->logger->addInfo("wp_update_attachment_metadata", array(
+        "paths" => $paths
+      ));
 
       return $meta;
 
@@ -94,9 +96,31 @@ class UploadsSyncMain
      * shoud catch it.
      */
     add_action("delete_attachment", function ($id) {
-      $this->logger->addInfo("delete_attachment");
+      // $meta = get_post_meta($id);
+      // $this->logger->addInfo("delete_attachment", array("meta" => $meta));
+
+      // non-image file meta: {"urls":["/var/www/html/hub/public/assets/uploads/2016/08/SrDeveloper.docx"]}
+      // image file meta: {"meta":{"_wp_attached_file":["2016/08/paper.peach_.gif"],"_wp_attachment_metadata":["a:5:{s:5:\"width\";i:300;s:6:\"height\";i:300;s:4:\"file\";s:24:\"2016/08/paper.peach_.gif\";s:5:\"sizes\";a:1:{s:9:\"thumbnail\";a:4:{s:4:\"file\";s:24:\"paper.peach_-300x240.gif\";s:5:\"width\";i:300;s:6:\"height\";i:240;s:9:\"mime-type\";s:9:\"image/gif\";}}s:10:\"image_meta\";a:12:{s:8:\"aperture\";s:1:\"0\";s:6:\"credit\";s:0:\"\";s:6:\"camera\";s:0:\"\";s:7:\"caption\";s:0:\"\";s:17:\"created_timestamp\";s:1:\"0\";s:9:\"copyright\";s:0:\"\";s:12:\"focal_length\";s:1:\"0\";s:3:\"iso\";s:1:\"0\";s:13:\"shutter_speed\";s:1:\"0\";s:5:\"title\";s:0:\"\";s:11:\"orientation\";s:1:\"0\";s:8:\"keywords\";a:0:{}}}"]}}
+
       // $this->sync($id, "delete_attachment WP hook");
     });
+  }
+
+  /**
+   * Get the absolute path of the directory
+   * into which the given file was uploaded.
+   * @param  string $filepath Relative file path (ex: 2016/08/hogsmeade.jpg)
+   * @return string Absolute path of upload directory (ex: /var/www/html/hub/public/assets/uploads/2016/08)
+   */
+  public function getUploadsPath($filepath)
+  {
+    $uploadInfo = wp_upload_dir();
+    $uploadsPath = $uploadInfo["basedir"]; // /var/www/html/hub/public/assets/uploads
+
+    $pathinfo = pathinfo($filepath);
+    $dirname = $pathinfo["dirname"]; // 2016/08
+
+    return $uploadsPath . "/" . $dirname;
   }
 
   /**
@@ -116,7 +140,7 @@ class UploadsSyncMain
       "id" => $id
     )));
 
-    // add a hook here for jhu.edu to clear its cache
+    do_action("rsync_complete", $id, $file);
   }
 }
 
