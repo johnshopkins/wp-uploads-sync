@@ -18,6 +18,11 @@ class UploadsSyncMain
     $this->logger = $logger;
     $this->setupGearmanClient();
     $this->setupActions();
+
+    // add_action("admin_init", function () {
+    //   $attachment = new \UploadsSync\Attachment(817);
+    // });
+
   }
 
   /**
@@ -57,7 +62,7 @@ class UploadsSyncMain
     add_filter("wp_update_attachment_metadata", function ($meta, $id) {
 
       $file = new UploadsSync\Attachment($id, $meta);
-      $this->sync($file->paths, $file->akamaiPath);
+      $this->sync($file->homepath, $file->source, $file->filenames);
 
       return $meta;
 
@@ -72,32 +77,31 @@ class UploadsSyncMain
      */
     add_action("delete_attachment", function ($id) {
 
-      $meta = get_post_meta($id, "_wp_attachment_metadata", true);
-      $file = new UploadsSync\Attachment($id, $meta);
-      $this->delete($file->directory, $file->akamaiPath, $file->filenames);
-
-      // $this->logger->addInfo("delete_attachment", array("meta" => $meta));
+      // $meta = get_post_meta($id, "_wp_attachment_metadata", true);
+      // $file = new UploadsSync\Attachment($id, $meta);
+      // $this->delete($file->directory, $file->akamaiPath, $file->filenames);
 
     });
   }
 
   /**
    * Syncs images to NetStorage.
-   * @param  array  $paths       Filepaths
-   * @param  string $akamaiPath  Relative path in Akamai to rsync images to (ex: assets/uploads/2016/08)
+   * @param  string $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
+   * @param  string $source    File location relative to homepath
+   * @param  array  $filenames Names of files to rsync
    */
-  public function sync($paths, $akamaiPath)
+  public function sync($homepath, $source, $filenames)
   {
-    $this->logger->addInfo("sync", array(
-      "paths" => $paths,
-      "akamaiPath" => $akamaiPath
-    ));
+    $data = array(
+      "homepath" => $homepath,
+      "source" => $source,
+      "filenames" => $filenames
+    );
 
-    // $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
-    //   "trigger" => $trigger,
-    //   "file" => get_attached_file($id)
-    // )));
-    //
+    // $this->logger->addInfo("sync", $data);
+
+    $this->gearmanClient->doNormal("upload", json_encode($data));
+
     // $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
     //   "id" => $id
     // )));
@@ -109,11 +113,13 @@ class UploadsSyncMain
   {
     // only the original file was in $filenames -- missing crops
 
-    $this->logger->addInfo("delete", array(
+    $this->logger->addInfo("delete");
+
+    $this->gearmanClient->doBackground("delete", json_encode(array(
       "localPath" => $localPath,
       "akamaiPath" => $akamaiPath,
       "filenames" => $filenames
-    ));
+    )));
   }
 }
 

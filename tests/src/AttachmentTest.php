@@ -19,6 +19,9 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
     $getHomePath = $this->getFunctionMock(__NAMESPACE__, "get_home_path");
     $getHomePath->expects($this->any())->willReturn("/var/www/html/hub/public/");
 
+    $wpUploadDir = $this->getFunctionMock(__NAMESPACE__, "wp_upload_dir");
+    $wpUploadDir->expects($this->any())->willReturn(array("basedir" => "/var/www/html/hub/public/assets/uploads"));
+
     $pathinfo = $this->getFunctionMock(__NAMESPACE__, "pathinfo");
     $pathinfo->expects($this->any())->willReturn(array("dirname" => "/var/www/html/hub/public/assets/uploads/2016/08"));
 
@@ -30,11 +33,8 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
   {
     $attachment = new \UploadsSync\Attachment(123, array());
 
-    $expected = array("/var/www/html/hub/public/assets/uploads/2016/08/filename.jpg");
-    $this->assertEquals($expected, $attachment->paths);
-
     $expected = "assets/uploads/2016/08";
-    $this->assertEquals($expected, $attachment->akamaiPath);
+    $this->assertEquals($expected, $attachment->source);
 
     $expected = array("filename.jpg");
     $this->assertEquals($expected, $attachment->filenames);
@@ -48,13 +48,6 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
         "medium" => array("file" => "filename-400x400.jpg")
       )
     ));
-
-    $expected = array(
-      "/var/www/html/hub/public/assets/uploads/2016/08/filename.jpg",
-      "/var/www/html/hub/public/assets/uploads/2016/08/filename-200x200.jpg",
-      "/var/www/html/hub/public/assets/uploads/2016/08/filename-400x400.jpg"
-    );
-    $this->assertEquals($expected, $attachment->paths);
 
     $expected = array("filename.jpg", "filename-200x200.jpg", "filename-400x400.jpg");
     $this->assertEquals($expected, $attachment->filenames);

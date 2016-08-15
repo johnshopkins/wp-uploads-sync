@@ -2,6 +2,10 @@
 
 namespace UploadsSync;
 
+/**
+ * Get infomation about an attachment in order to perform
+ * RSYNC operations from the local server to Akamai.
+ */
 class Attachment
 {
   /**
@@ -12,25 +16,18 @@ class Attachment
   protected $filepath;
 
   /**
-   * Directory in which attachment is located
-   * Ex: /var/www/html/hub/public/assets/uploads/2016/08
+   * WordPress home directory, where we will cd into prior to rsync
+   * Ex: /var/www/html/hub/public/
    * @var string
    */
-  public $directory;
+  public $homepath;
 
   /**
-   * Where to rsync file on Akamai
+   * Rsync source relative to homepath
    * Ex: assets/uploads/2016/08
    * @var string
    */
-  public $akamaiPath;
-
-  /**
-   * Paths of attachment and attachment
-   * crops on the local server
-   * @var array
-   */
-  public $paths = array();
+  public $source;
 
   /**
    * Filenames of attachment and attachment crops
@@ -45,32 +42,34 @@ class Attachment
    */
   public function __construct($id, $meta = array())
   {
-    $this->filepath = get_attached_file($id);
-
+    // get directory this file was uploaded into
+    $this->filepath = get_attached_file($id); // /var/www/html/hub/public/assets/uploads/2016/08/oriole-bird-1.jpg
     $filepathInfo = pathinfo($this->filepath);
-    $this->directory = $filepathInfo["dirname"];
+    $uploadDirectory = $filepathInfo["dirname"]; // /var/www/html/hub/public/assets/uploads/2016/08
 
-    $homepath = get_home_path(); // /var/www/html/hub/public/
-    $this->akamaiPath = str_replace($homepath, "", $this->directory);
+    // get relative source directory
+    $this->homepath = get_home_path(); // /var/www/html/hub/public/
+    $this->source = str_replace($this->homepath, "", $uploadDirectory); // assets/uploads/2016/08
 
-    $this->getPaths($meta);
+    // get general uploads directory
+    $uploadsdir = wp_upload_dir();
+    $basedir = $uploadsdir["basedir"]; // /var/www/html/hub/public/assets/uploads
+
+    $this->getFilenames($meta);
   }
 
   /**
-   * Get local filepaths and filenames or
-   * attachments and crops
+   * Get local filenames of attachment and crops
    * @param array $meta Attachment metadata
    * @return null
    */
-  protected function getPaths($meta)
+  protected function getFilenames($meta)
   {
-    $this->paths[] = $this->filepath;
     $this->filenames[] = basename($this->filepath);
 
     if (!isset($meta["sizes"])) return; // non-image
 
     foreach ($meta["sizes"] as $crop) {
-      $this->paths[] = $this->directory . "/" . $crop["file"];
       $this->filenames[] = $crop["file"];
     }
   }
