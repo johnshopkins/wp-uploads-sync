@@ -68,9 +68,15 @@ class UploadsSyncMain
     add_filter("wp_delete_file", function ($path) {
 
       $file = new UploadsSync\Attachment($path);
+
+      // delete the file ourselves (WP doesn't have a way )
+      @unlink($path);
+
+      // initialize rsync
       $this->delete($file->homepath, $file->source, $file->filenames);
 
-      return $path;
+      // return empty array so WP doesn't try to delete too
+      return array();
 
     });
   }
