@@ -98,9 +98,9 @@ class UploadsSyncMain
 
     $this->gearmanClient->doNormal("upload", json_encode($data));
 
-    // $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
-    //   "id" => $id
-    // )));
+    $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
+      "id" => $id
+    )));
 
     do_action("netstorage_upload_complete", $id, $file);
   }
