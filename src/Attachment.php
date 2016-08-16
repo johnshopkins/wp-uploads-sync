@@ -9,11 +9,18 @@ namespace UploadsSync;
 class Attachment
 {
   /**
-   * Path of attachment on local server
-   * Ex: /var/www/html/hub/public/assets/uploads/2016/08/filename.jpg
+   * Attachment URL
+   * Ex: http://local.hub.jhu.edu/assets/uploads/2016/08/filename.jpg
    * @var string
    */
-  protected $filepath;
+  protected $attachmentUrl;
+
+  /**
+   * WordPress home URL
+   * Ex: /var/www/html/hub/public/
+   * @var string
+   */
+  public $homeurl;
 
   /**
    * WordPress home directory, where we will cd into prior to rsync
@@ -43,17 +50,16 @@ class Attachment
   public function __construct($id, $meta = array())
   {
     // get directory this file was uploaded into
-    $this->filepath = get_attached_file($id); // /var/www/html/hub/public/assets/uploads/2016/08/oriole-bird-1.jpg
-    $filepathInfo = pathinfo($this->filepath);
-    $uploadDirectory = $filepathInfo["dirname"]; // /var/www/html/hub/public/assets/uploads/2016/08
+    $this->attachmentUrl = wp_get_attachment_url($id); // http://hub.jhu.edu/assets/uploads/2016/08/filename.jpg
+    $filepathInfo = pathinfo($this->attachmentUrl);
+    $uploadDirectory = $filepathInfo["dirname"]; // http://hub.jhu.edu/assets/uploads/2016/08
 
     // get relative source directory
-    $this->homepath = get_home_path(); // /var/www/html/hub/public/
-    $this->source = str_replace($this->homepath, "", $uploadDirectory); // assets/uploads/2016/08
+    $this->homeurl = home_url() . "/"; // http://hub.jhu.edu/
+    $this->source = str_replace($this->homeurl, "", $uploadDirectory); // assets/uploads/2016/08
 
-    // get general uploads directory
-    $uploadsdir = wp_upload_dir();
-    $basedir = $uploadsdir["basedir"]; // /var/www/html/hub/public/assets/uploads
+    // get directory to CD into prior to rsync
+    $this->homepath = get_home_path(); // /var/www/html/hub/public/
 
     $this->getFilenames($meta);
   }
@@ -65,7 +71,7 @@ class Attachment
    */
   protected function getFilenames($meta)
   {
-    $this->filenames[] = basename($this->filepath);
+    $this->filenames[] = basename($this->attachmentUrl);
 
     if (!isset($meta["sizes"])) return; // non-image
 
