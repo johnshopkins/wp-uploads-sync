@@ -9,18 +9,12 @@ namespace UploadsSync;
 class Attachment
 {
   /**
-   * Attachment URL
-   * Ex: http://local.hub.jhu.edu/assets/uploads/2016/08/filename.jpg
+   * Attachment path
+   * Ex: /var/www/html/hub/current/public/assets/uploads/2016/08/filename.jpg
+   * OR  /var/www/html/hub/releases/20160816140117/public/assets/uploads/2016/08/filename.jpg
    * @var string
    */
-  protected $attachmentUrl;
-
-  /**
-   * WordPress home URL
-   * Ex: /var/www/html/hub/public/
-   * @var string
-   */
-  public $homeurl;
+  protected $path;
 
   /**
    * WordPress home directory, where we will cd into prior to rsync
@@ -44,24 +38,34 @@ class Attachment
 
   /**
    * __construct
-   * @param integer $id   Attachment ID
-   * @param array   $meta [description]
+   * @param string  $path  Attachment path
+   * @param array   $meta  Metadata
    */
-  public function __construct($id, $meta = array())
+  public function __construct($path, $meta = array())
   {
     // get directory this file was uploaded into
-    $this->attachmentUrl = wp_get_attachment_url($id); // http://hub.jhu.edu/assets/uploads/2016/08/filename.jpg
-    $filepathInfo = pathinfo($this->attachmentUrl);
-    $uploadDirectory = $filepathInfo["dirname"]; // http://hub.jhu.edu/assets/uploads/2016/08
-
-    // get relative source directory
-    $this->homeurl = home_url() . "/"; // http://hub.jhu.edu/
-    $this->source = str_replace($this->homeurl, "", $uploadDirectory); // assets/uploads/2016/08
+    $this->path = $this->normalizePath($path);
+    $filepathInfo = pathinfo($this->path);
+    $uploadDirectory = $filepathInfo["dirname"]; // /var/www/html/hub/public/assets/uploads/2016/08
 
     // get directory to CD into prior to rsync
     $this->homepath = get_home_path(); // /var/www/html/hub/public/
 
+    // get relative source directory
+    $this->source = str_replace($this->homepath, "", $uploadDirectory); // assets/uploads/2016/08
+
     $this->getFilenames($meta);
+  }
+
+  /**
+   * Convert `releases/YYYYMMDDHHMMSS` to `current`
+   * for staging and production environments
+   * @param  string $path Attachment path
+   * @return strig Normalized path
+   */
+  protected function normalizePath($path)
+  {
+    return preg_replace("/releases\/\d{14}/", "current", $path);
   }
 
   /**
@@ -71,7 +75,7 @@ class Attachment
    */
   protected function getFilenames($meta)
   {
-    $this->filenames[] = basename($this->attachmentUrl);
+    $this->filenames[] = basename($this->path);
 
     if (!isset($meta["sizes"])) return; // non-image
 
