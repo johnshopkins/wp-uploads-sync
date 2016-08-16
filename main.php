@@ -19,9 +19,12 @@ class UploadsSyncMain
     $this->setupGearmanClient();
     $this->setupActions();
 
-    // add_action("admin_init", function () {
-    //   $attachment = new \UploadsSync\Attachment(817);
-    // });
+    add_action("admin_init", function () {
+      $id = 832;
+      $meta = get_post_meta($ids, "_wp_attachment_metadata", true);
+      $attachment = new \UploadsSync\Attachment(get_attached_file(832), $meta);
+      print_r(array($attachment->homepath, $attachment->source, $attachment->filenames)); die();
+    });
 
   }
 
@@ -48,49 +51,38 @@ class UploadsSyncMain
   protected function setupActions()
   {
     /**
-     * Register custom actions
-     */
-    add_action("rsync_complete", function () {
-      $this->logger->addInfo("rsync_complete");
-    });
-
-    /**
      * Catches when an attachment is created (`add_attachment`
      * runs before metadata is even created) or modified.
      * @var string
      */
     add_filter("wp_update_attachment_metadata", function ($meta, $id) {
 
-      $file = new UploadsSync\Attachment($id, $meta);
-      $this->sync($file->homepath, $file->source, $file->filenames);
+      $path = get_attached_file($id);
+      $file = new UploadsSync\Attachment($path, $meta);
+      $this->upload($id, $file->homepath, $file->source, $file->filenames);
 
       return $meta;
 
     }, 10, 2);
 
-    /**
-     * This fires BEFORE WordPress has actually
-     * deleted the file from the server, so rsync
-     * has a chance of missing deleted images
-     * when it runs. The next time it runs, it
-     * shoud catch it.
-     */
-    add_action("delete_attachment", function ($id) {
+    add_filter("wp_delete_file", function ($path) {
 
-      // $meta = get_post_meta($id, "_wp_attachment_metadata", true);
-      // $file = new UploadsSync\Attachment($id, $meta);
-      // $this->delete($file->directory, $file->akamaiPath, $file->filenames);
+      $file = new UploadsSync\Attachment($path);
+      $this->delete($file->homepath, $file->source, $file->filenames);
+
+      return $path;
 
     });
   }
 
   /**
    * Syncs images to NetStorage.
-   * @param  string $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
-   * @param  string $source    File location relative to homepath
-   * @param  array  $filenames Names of files to rsync
+   * @param  integer $id        WordPress homepath (ex: /var/www/html/hub/public/)
+   * @param  string  $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
+   * @param  string  $source    File location relative to homepath
+   * @param  array   $filenames Names of files to upload
    */
-  public function sync($homepath, $source, $filenames)
+  public function upload($id, $homepath, $source, $filenames)
   {
     $data = array(
       "homepath" => $homepath,
@@ -98,28 +90,30 @@ class UploadsSyncMain
       "filenames" => $filenames
     );
 
-    // $this->logger->addInfo("sync", $data);
-
     $this->gearmanClient->doNormal("upload", json_encode($data));
 
     // $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
     //   "id" => $id
     // )));
-    //
-    // do_action("rsync_complete", $id, $file);
+
+    do_action("netstorage_upload_complete", $id, $file);
   }
 
-  public function delete($localPath, $akamaiPath, $filenames)
+  /**
+   * Delete a file in NetStorage
+   * @param  string $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
+   * @param  string $source    File location relative to homepath
+   * @param  array  $filenames Names of files to delete
+   */
+  public function delete($homepath, $source, $filenames)
   {
-    // only the original file was in $filenames -- missing crops
-
-    $this->logger->addInfo("delete");
-
-    $this->gearmanClient->doBackground("delete", json_encode(array(
-      "localPath" => $localPath,
-      "akamaiPath" => $akamaiPath,
+    $data = array(
+      "homepath" => $homepath,
+      "source" => $source,
       "filenames" => $filenames
-    )));
+    );
+
+    $this->gearmanClient->doNormal("delete", json_encode($data));
   }
 }
 
