@@ -8,14 +8,16 @@ Version: 0.0
 
 use Secrets\Secret;
 
-class UploadsSyncMain
+class UploadsSync
 {
-  public function __construct($logger)
+  public function __construct($logger, $namespace)
   {
     // // do not run this plugin on local or staging
 		// if (defined("ENV") && (ENV == "local" || ENV == "staging")) return;
 
     $this->logger = $logger;
+    $this->namespace = $namespace;
+
     $this->setupGearmanClient();
     $this->setupActions();
 
@@ -97,9 +99,9 @@ class UploadsSyncMain
       "filenames" => $filenames
     );
 
-    $this->gearmanClient->doNormal("upload", json_encode($data));
+    $this->gearmanClient->doNormal("{$this->namespace}_upload", json_encode($data));
 
-    $this->gearmanClient->doBackground("purge_cache", json_encode(array(
+    $this->gearmanClient->doBackground("{$this->namespace}_purge_cache", json_encode(array(
       "urls" => $urls
     )));
 
@@ -120,8 +122,6 @@ class UploadsSyncMain
       "filenames" => $filenames
     );
 
-    $this->gearmanClient->doNormal("delete", json_encode($data));
+    $this->gearmanClient->doNormal("{$this->namespace}_delete", json_encode($data));
   }
 }
-
-new UploadsSyncMain($dependencies["logger_wp"]);
