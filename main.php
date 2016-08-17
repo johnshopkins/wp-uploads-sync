@@ -59,7 +59,7 @@ class UploadsSyncMain
 
       $path = get_attached_file($id);
       $file = new UploadsSync\Attachment($path, $meta);
-      $this->upload($id, $file->homepath, $file->source, $file->filenames);
+      $this->upload($id, $file->homepath, $file->source, $file->filenames, $file->getUrls());
 
       return $meta;
 
@@ -87,8 +87,9 @@ class UploadsSyncMain
    * @param  string  $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
    * @param  string  $source    File location relative to homepath
    * @param  array   $filenames Names of files to upload
+   * @param  array   $urls      URLs that need their cache busted
    */
-  public function upload($id, $homepath, $source, $filenames)
+  public function upload($id, $homepath, $source, $filenames, $urls)
   {
     $data = array(
       "homepath" => $homepath,
@@ -99,7 +100,7 @@ class UploadsSyncMain
     $this->gearmanClient->doNormal("upload", json_encode($data));
 
     $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
-      "id" => $id
+      "urls" => $urls
     )));
 
     do_action("netstorage_upload_complete", $id, $file);
