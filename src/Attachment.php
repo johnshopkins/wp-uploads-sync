@@ -14,7 +14,7 @@ class Attachment
    * OR  /var/www/html/hub/releases/20160816140117/public/assets/uploads/2016/08/filename.jpg
    * @var string
    */
-  protected $path;
+  public $path;
 
   /**
    * WordPress home directory, where we will cd into prior to rsync
@@ -82,5 +82,13 @@ class Attachment
     foreach ($meta["sizes"] as $crop) {
       $this->filenames[] = $crop["file"];
     }
+  }
+
+  public function getUrls()
+  {
+    $homeurl = home_url();
+    return array_map(function ($filename) use ($homeurl) {
+      return "{$homeurl}/{$this->source}/{$filename}";
+    }, $this->filenames);
   }
 }

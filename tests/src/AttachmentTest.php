@@ -16,6 +16,10 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
     $getHomePath->expects($this->any())
       ->willReturn("/var/www/html/hub/public/");
 
+    $getHomePath = $this->getFunctionMock(__NAMESPACE__, "home_url");
+    $getHomePath->expects($this->any())
+      ->willReturn("http://hub.jhu.edu");
+
     $pathinfo = $this->getFunctionMock(__NAMESPACE__, "pathinfo");
     $pathinfo->expects($this->any())
       ->willReturn(array("dirname" => "/var/www/html/hub/public/assets/uploads/2016/08"));
@@ -25,10 +29,28 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
       ->willReturn("filename.jpg");
 	}
 
+  public function testNormalizePath()
+  {
+    // local
+    $path = "/var/www/html/hub/public/assets/uploads/2016/08/filename.jpg";
+    $attachment = new \UploadsSync\Attachment($path);
+    $this->assertEquals($path, $attachment->path);
+
+    // staging or production (with releases path)
+    $path = "/var/www/html/hub/releases/20160816183633/public/assets/uploads/2016/08/filename.jpg";
+    $attachment = new \UploadsSync\Attachment($path);
+    $this->assertEquals("/var/www/html/hub/current/public/assets/uploads/2016/08/filename.jpg", $attachment->path);
+
+    // staging or production (with current path)
+    $path = "/var/www/html/hub/current/public/assets/uploads/2016/08/filename.jpg";
+    $attachment = new \UploadsSync\Attachment($path);
+    $this->assertEquals("/var/www/html/hub/current/public/assets/uploads/2016/08/filename.jpg", $attachment->path);
+  }
+
   public function testNonImageFile()
   {
     $path = "/var/www/html/hub/public/assets/uploads/2016/08/filename.jpg";
-    $attachment = new \UploadsSync\Attachment($path, array());
+    $attachment = new \UploadsSync\Attachment($path);
 
     $expected = "assets/uploads/2016/08";
     $this->assertEquals($expected, $attachment->source);
@@ -50,12 +72,12 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
     $this->assertEquals($expected, $attachment->filenames);
   }
 
-  public function testStagingEnv()
+  public function testGetUrls()
   {
-    $path = "/var/www/html/hub/releases/20160816140117/public/assets/uploads/2016/08/filename.jpg";
-    $attachment = new \UploadsSync\Attachment($path, array());
+    $path = "/var/www/html/hub/current/public/assets/uploads/2016/08/filename.jpg";
+    $attachment = new \UploadsSync\Attachment($path);
 
-    $expected = "assets/uploads/2016/08";
-    $this->assertEquals($expected, $attachment->source);
+    $expected = array("http://hub.jhu.edu/assets/uploads/2016/08/filename.jpg");
+    $this->assertEquals($expected, $attachment->getUrls());
   }
 }
