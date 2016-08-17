@@ -103,7 +103,7 @@ class UploadsSync
       "urls" => $urls
     )));
 
-    do_action("netstorage_upload_complete", $id, $file);
+    do_action("netstorage_upload_complete", $id);
   }
 
   /**
