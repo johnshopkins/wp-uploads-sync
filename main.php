@@ -8,27 +8,35 @@ Version: 0.0
 
 use Secrets\Secret;
 
-class UploadsSyncMain
+class UploadsSync
 {
-  public function __construct($logger, $cacheCleaner)
+  public function __construct($logger, $namespace, $servers)
   {
-    // do not run this plugin on local or staging
-		if (defined("ENV") && (ENV == "local" || ENV == "staging")) return;
+    // // do not run this plugin on local or staging
+		// if (defined("ENV") && (ENV == "local" || ENV == "staging")) return;
 
-    $this->cacheCleaner = $cacheCleaner;
-    $this->setupGearmanClient();
+    $this->logger = $logger;
+    $this->namespace = $namespace;
+
+    $this->setupGearmanClient($servers);
     $this->setupActions();
+
+    // add_action("admin_init", function () {
+    //   $id = 832;
+    //   $meta = get_post_meta($ids, "_wp_attachment_metadata", true);
+    //   $attachment = new \UploadsSync\Attachment(get_attached_file(832), $meta);
+    //   print_r(array($attachment->homepath, $attachment->source, $attachment->filenames)); die();
+    // });
+
   }
 
   /**
    * Sets up the Gearman client, adding only
    * the admin server.
    */
-  protected function setupGearmanClient()
+  protected function setupGearmanClient($servers)
   {
     $this->gearmanClient = new \GearmanClient();
-
-    $servers = Secret::get("jhu", ENV, "servers");
 
     if (!$servers) {
       $wp_logger->addCritical("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
@@ -43,72 +51,75 @@ class UploadsSyncMain
   protected function setupActions()
   {
     /**
-     * Use this action to hook into when an image
-     * is cropped uisng the crop-thumbnails plugin.
-     * Also catches when an attachment is added.
+     * Catches when an attachment is created (`add_attachment`
+     * runs before metadata is even created) or modified.
+     * @var string
      */
-    add_action("wp_update_attachment_metadata", array($this, "newImage"), 10, 2);
+    add_filter("wp_update_attachment_metadata", function ($meta, $id) {
 
-    /**
-     * This fires BEFORE WordPress has actually
-     * deleted the file from the server, so rsync
-     * has a chance of missing deleted images
-     * when it runs. The next time it runs, it
-     * shoud catch it.
-     */
-    add_action("delete_attachment", function ($id) {
-      $this->sync($id, "delete_attachment WP hook");
-    });
+      $path = get_attached_file($id);
+      $file = new UploadsSync\Attachment($path, $meta);
+      $this->upload($id, $file->homepath, $file->source, $file->filenames, $file->getUrls());
 
-    add_action("edit_attachment", function ($id) {
-      $this->sync($id, "edit_attachment WP hook");
+      return $meta;
+
+    }, 10, 2);
+
+    add_filter("wp_delete_file", function ($path) {
+
+      $file = new UploadsSync\Attachment($path);
+
+      // delete the file ourselves (WP doesn't have a way )
+      @unlink($path);
+
+      // initialize rsync
+      $this->delete($file->homepath, $file->source, $file->filenames);
+
+      // return empty array so WP doesn't try to delete too
+      return array();
+
     });
   }
 
   /**
-   * Syncs images to NetStorage. Waits for the rsync
-   * to finish and then clears the cache of the image,
-   * now that its metadata is available in NetStorage.
-   * @param array   $data Attachment meta data.
-   * @param integer $id   Attachment ID
+   * Syncs images to NetStorage.
+   * @param  integer $id        WordPress homepath (ex: /var/www/html/hub/public/)
+   * @param  string  $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
+   * @param  string  $source    File location relative to homepath
+   * @param  array   $filenames Names of files to upload
+   * @param  array   $urls      URLs that need their cache busted
    */
-  public function newImage($data, $id)
+  public function upload($id, $homepath, $source, $filenames, $urls)
   {
-    $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
-      "trigger" => "wp_update_attachment_metadata",
-      "file" => get_attached_file($id)
+    $data = array(
+      "homepath" => $homepath,
+      "source" => $source,
+      "filenames" => $filenames
+    );
+
+    $this->gearmanClient->doNormal("{$this->namespace}_upload", json_encode($data));
+
+    $this->gearmanClient->doBackground("{$this->namespace}_purge_cache", json_encode(array(
+      "urls" => $urls
     )));
 
-    $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
-      "id" => $id
-    )));
-
-    // clear endpoint
-    $this->gearmanClient->doHighBackground("api_clear_cache", json_encode(array("id" => $id)));
-
-    return $data;
+    do_action("netstorage_upload_complete", $id);
   }
 
   /**
-   * Syncs images to NetStorage, but doesn't wait
-   * around for the rsync command to complete.
-   * @param  string $trigger WordPress action
-   * @return null
+   * Delete a file in NetStorage
+   * @param  string $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
+   * @param  string $source    File location relative to homepath
+   * @param  array  $filenames Names of files to delete
    */
-  public function sync($id, $trigger = null)
+  public function delete($homepath, $source, $filenames)
   {
-    $this->gearmanClient->doNormal("sync_uploads", json_encode(array(
-      "trigger" => $trigger,
-      "file" => get_attached_file($id)
-    )));
+    $data = array(
+      "homepath" => $homepath,
+      "source" => $source,
+      "filenames" => $filenames
+    );
 
-    $this->gearmanClient->doBackground("invalidate_cache", json_encode(array(
-      "id" => $id
-    )));
-
-    // clear endpoint
-    $this->gearmanClient->doHighBackground("api_clear_cache", json_encode(array("id" => $id)));
+    $this->gearmanClient->doNormal("{$this->namespace}_delete", json_encode($data));
   }
 }
-
-new UploadsSyncMain($wp_logger, $jhu_cache_clearer);
