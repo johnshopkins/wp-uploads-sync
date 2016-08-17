@@ -10,7 +10,7 @@ use Secrets\Secret;
 
 class UploadsSync
 {
-  public function __construct($logger, $namespace)
+  public function __construct($logger, $namespace, $servers)
   {
     // // do not run this plugin on local or staging
 		// if (defined("ENV") && (ENV == "local" || ENV == "staging")) return;
@@ -18,7 +18,7 @@ class UploadsSync
     $this->logger = $logger;
     $this->namespace = $namespace;
 
-    $this->setupGearmanClient();
+    $this->setupGearmanClient($servers);
     $this->setupActions();
 
     // add_action("admin_init", function () {
@@ -34,11 +34,9 @@ class UploadsSync
    * Sets up the Gearman client, adding only
    * the admin server.
    */
-  protected function setupGearmanClient()
+  protected function setupGearmanClient($servers)
   {
     $this->gearmanClient = new \GearmanClient();
-
-    $servers = Secret::get("jhu", ENV, "servers");
 
     if (!$servers) {
       $wp_logger->addCritical("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
