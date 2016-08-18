@@ -12,10 +12,6 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
 
 	public function setUp()
 	{
-    $getHomePath = $this->getFunctionMock(__NAMESPACE__, "get_home_path");
-    $getHomePath->expects($this->any())
-      ->willReturn("/var/www/html/hub/public/");
-
     $getHomePath = $this->getFunctionMock(__NAMESPACE__, "home_url");
     $getHomePath->expects($this->any())
       ->willReturn("http://hub.jhu.edu");

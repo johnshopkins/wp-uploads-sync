@@ -49,7 +49,7 @@ class Attachment
     $uploadDirectory = $filepathInfo["dirname"]; // /var/www/html/hub/public/assets/uploads/2016/08
 
     // get directory to CD into prior to rsync
-    $this->homepath = get_home_path(); // /var/www/html/hub/public/
+    $this->homepath = WP_HOME_PATH; // /var/www/html/hub/public/
 
     // get relative source directory
     $this->source = str_replace($this->homepath, "", $uploadDirectory); // assets/uploads/2016/08
