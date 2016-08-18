@@ -102,8 +102,6 @@ class UploadsSync
     $this->gearmanClient->doBackground("{$this->namespace}_purge_cache", json_encode(array(
       "urls" => $urls
     )));
-
-    do_action("netstorage_upload_complete", $id);
   }
 
   /**
