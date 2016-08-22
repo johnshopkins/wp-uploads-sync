@@ -69,7 +69,7 @@ class UploadsSync
 
       $file = new UploadsSync\Attachment($path);
 
-      // delete the file ourselves (WP doesn't have a way )
+      // delete the file ourselves (WP doesn't have a way to hook in AFTER the file is removed from the system)
       @unlink($path);
 
       // initialize rsync
