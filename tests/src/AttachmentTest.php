@@ -18,7 +18,7 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
 
     $pathinfo = $this->getFunctionMock(__NAMESPACE__, "pathinfo");
     $pathinfo->expects($this->any())
-      ->willReturn(array("dirname" => "/var/www/html/hub/public/assets/uploads/2016/08"));
+      ->willReturn(array("dirname" => "/var/www/html/hub/current/public/assets/uploads/2016/08"));
 
     $basename = $this->getFunctionMock(__NAMESPACE__, "basename");
     $basename->expects($this->any())
@@ -28,7 +28,7 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
   public function testNormalizePath()
   {
     // local
-    $path = "/var/www/html/hub/public/assets/uploads/2016/08/filename.jpg";
+    $path = "/var/www/html/hub/current/public/assets/uploads/2016/08/filename.jpg";
     $attachment = new \UploadsSync\Attachment($path);
     $this->assertEquals($path, $attachment->path);
 
@@ -45,7 +45,7 @@ class AttachmentTest extends \PHPUnit_Framework_TestCase
 
   public function testNonImageFile()
   {
-    $path = "/var/www/html/hub/public/assets/uploads/2016/08/filename.jpg";
+    $path = "/var/www/html/hub/current/public/assets/uploads/2016/08/filename.jpg";
     $attachment = new \UploadsSync\Attachment($path);
 
     $expected = "assets/uploads/2016/08";

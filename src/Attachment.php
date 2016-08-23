@@ -18,7 +18,7 @@ class Attachment
 
   /**
    * WordPress home directory, where we will cd into prior to rsync
-   * Ex: /var/www/html/hub/public/
+   * Ex: /var/www/html/hub/current/public/
    * @var string
    */
   public $homepath;
@@ -46,10 +46,10 @@ class Attachment
     // get directory this file was uploaded into
     $this->path = $this->normalizePath($path);
     $filepathInfo = pathinfo($this->path);
-    $uploadDirectory = $filepathInfo["dirname"]; // /var/www/html/hub/public/assets/uploads/2016/08
+    $uploadDirectory = $filepathInfo["dirname"]; // /var/www/html/hub/current/public/assets/uploads/2016/08
 
     // get directory to CD into prior to rsync
-    $this->homepath = WP_HOME_PATH; // /var/www/html/hub/public/
+    $this->homepath = WP_HOME_PATH; // /var/www/html/hub/current/public/
 
     // get relative source directory
     $this->source = str_replace($this->homepath, "", $uploadDirectory); // assets/uploads/2016/08
