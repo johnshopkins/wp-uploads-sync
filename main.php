@@ -118,6 +118,6 @@ class UploadsSync
       "filenames" => $filenames
     );
 
-    $this->gearmanClient->doNormal("{$this->namespace}_delete", json_encode($data));
+    $this->gearmanClient->doBackground("{$this->namespace}_delete", json_encode($data));
   }
 }
