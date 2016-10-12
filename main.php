@@ -12,8 +12,8 @@ class UploadsSync
 {
   public function __construct($logger, $namespace, $servers)
   {
-    // do not run this plugin on local or staging
-    if ((defined("JHU_DEBUG") && JHU_DEBUG) || (defined("ENV") && (ENV == "local" || ENV == "staging" || ENV == "beta"))) return;
+    // if not production AND JHU_DEBUG is false
+    if ((defined("ENV") && ENV != "production") && (defined("JHU_DEBUG") && !JHU_DEBUG)) return;
 
     $this->logger = $logger;
     $this->namespace = $namespace;
