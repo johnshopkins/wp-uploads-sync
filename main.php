@@ -99,7 +99,7 @@ class UploadsSync
 
     $this->gearmanClient->doNormal("{$this->namespace}_upload", json_encode($data));
 
-    $this->gearmanClient->doBackground("{$this->namespace}_purge_cache", json_encode(array(
+    $this->gearmanClient->doBackground("{$this->namespace}_invalidate_urls", json_encode(array(
       "urls" => $urls
     )));
   }
