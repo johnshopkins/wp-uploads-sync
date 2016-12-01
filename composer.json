@@ -5,12 +5,6 @@
   "description": "On attachment upload, delete, edit, run a script to rsync uploads between servers.",
   "license": "MIT",
   "homepage": "http://github.com/johnshopkins/wp-uploads-sync",
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "git@github.com:jenwachter/akamai-open-edgegrid-php.git"
-    }
-  ],
   "require": {
     "johnshopkins/akamai-open-edgegrid-php": "dev-master"
   },
