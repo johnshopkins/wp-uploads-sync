@@ -12,8 +12,8 @@ class UploadsSync
 {
   public function __construct($logger, $namespace, $servers)
   {
-    // if not production or beta AND DEBUG is false
-    if ((defined("ENV") && !in_array(ENV, array("production", "beta"))) && (defined("DEBUG") && !DEBUG)) return;
+    // if not production AND DEBUG is false
+    if ((defined("ENV") && ENV != "production") && (defined("DEBUG") && !DEBUG)) return;
 
     $this->logger = $logger;
     $this->namespace = $namespace;
