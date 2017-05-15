@@ -20,14 +20,6 @@ class UploadsSync
 
     $this->setupGearmanClient($servers);
     $this->setupActions();
-
-    // add_action("admin_init", function () {
-    //   $id = 832;
-    //   $meta = get_post_meta($ids, "_wp_attachment_metadata", true);
-    //   $attachment = new \UploadsSync\Attachment(get_attached_file(832), $meta);
-    //   print_r(array($attachment->homepath, $attachment->source, $attachment->filenames)); die();
-    // });
-
   }
 
   /**
@@ -39,7 +31,7 @@ class UploadsSync
     $this->gearmanClient = new \GearmanClient();
 
     if (!$servers) {
-      $wp_logger->addCritical("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
+      $this->logger->addCritical("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
     }
 
     // add admin server only
