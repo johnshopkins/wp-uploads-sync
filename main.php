@@ -31,7 +31,7 @@ class UploadsSync
     $this->gearmanClient = new \GearmanClient();
 
     if (!$servers) {
-      $this->logger->addCritical("Servers unavailable for Gearman " . __FILE__ . " on line " . __LINE__);
+      $this->logger->addError("Servers unavailable for Gearman.");
     }
 
     // add admin server only
