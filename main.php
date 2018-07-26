@@ -113,3 +113,6 @@ class UploadsSync
     $this->gearmanClient->doNormal("{$this->namespace}_delete", json_encode($data));
   }
 }
+
+$servers = Secret::get("jhu", ENV, "servers");
+new UploadsSync($dependencies["logger_gearman"], "jhu", $servers);
