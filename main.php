@@ -89,7 +89,7 @@ class UploadsSync
       "filenames" => $filenames
     );
 
-    $this->gearmanClient->doNormal("{$this->namespace}_upload", json_encode($data));
+    $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
 
     $this->gearmanClient->doBackground("{$this->namespace}_invalidate_urls", json_encode(array(
       "urls" => $urls
@@ -110,7 +110,7 @@ class UploadsSync
       "filenames" => $filenames
     );
 
-    $this->gearmanClient->doNormal("{$this->namespace}_delete", json_encode($data));
+    $this->gearmanClient->doBackground("{$this->namespace}_delete", json_encode($data));
   }
 }
 
