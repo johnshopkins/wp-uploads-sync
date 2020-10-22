@@ -77,7 +77,10 @@ class UploadsSync
    */
   public function upload($id, $file, $type = 'initial upload', $changed = [])
   {
+    global $wpdb;
+
     $files = $file->getFilenamesAndUrls($changed);
+
     $this->logger->addInfo('upload', $files);
 
     foreach ($files as $style => $details) {
@@ -94,6 +97,28 @@ class UploadsSync
 
       $handle = $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
 
+      
+      // add the job to the database for status tracking
+
+      $row = [
+        'fid' => $id,
+        'site' => get_current_blog_id(),
+        'style' => $style,
+        'type' => $type,
+        'handle' => $handle
+      ];
+
+      $format = ['%d', '%d', '%s', '%s', '%s'];
+
+      // insert into database
+      $result = $wpdb->insert('file_sync', $row, $format);
+
+      if ($result === false) {
+        // fail silently
+        $this->logger->addWarning('Failed to insert data into `file_sync` table', $row);
+      }
+    }
+  }
   }
 
   /**
