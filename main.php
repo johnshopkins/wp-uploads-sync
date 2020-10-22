@@ -91,9 +91,6 @@ class UploadsSync
 
     $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
 
-    $this->gearmanClient->doBackground("{$this->namespace}_invalidate_urls", json_encode(array(
-      "urls" => $urls
-    )));
   }
 
   /**
