@@ -40,6 +40,38 @@ class UploadsSync
     $this->gearmanClient->addServer($server->hostname);
   }
 
+  /**
+   * Based on the new metadata the crop thumbnails plugin is
+   * about to save to the database, find out which images changed.
+   * @param integer $id      Attachment ID
+   * @param array   $newMeta New metadata from crop thumbnails plugin
+   * @return array  Image sizes that changed
+   */
+  protected function findImagesThatChanged($id, $newMeta)
+  {
+    $changed = [];
+    $current = wp_get_attachment_metadata($id);
+
+    foreach ($newMeta['sizes'] as $size => $details) {
+
+      if (!isset($details['cpt_last_cropping_data'])) {
+        // this image has never been cropped by the plugin
+        continue;
+      }
+        
+      $currentCropData = $current['sizes'][$size]['cpt_last_cropping_data'] ?? null;
+      $newCropData = $details['cpt_last_cropping_data'];
+
+      if ($currentCropData === null || $currentCropData['x'] !== $newCropData['x'] || $currentCropData['y'] !== $newCropData['y'] || $currentCropData['x2'] !== $newCropData['x2'] || $currentCropData['y2'] !== $newCropData['y2']) {
+        // new crop position is different than the current crop position
+        $changed[] = $size;
+      }
+
+    }
+
+    return $changed;
+  }
+
   protected function setupActions()
   {
     /**
@@ -55,6 +87,28 @@ class UploadsSync
       return $meta;
 
     }, 10, 2);
+
+    /**
+     * After an image has been recropped with the crop-thumbnails plugin
+     * https://github.com/vollyimnetz/crop-thumbnails#filter-crop_thumbnails_before_update_metadata
+     */
+
+
+
+    add_filter('crop_thumbnails_before_update_metadata', function ($meta, $id) {
+
+      $changed = $this->findImagesThatChanged($id, $meta);
+
+      if (!empty($changed)) {
+        $path = get_attached_file($id);
+        $file = new UploadsSync\Attachment($path, $meta);
+
+        $this->upload($id, $file, 'recropped', $changed);
+      }
+
+      return $meta;
+
+    }, 10, 3);
 
     add_filter("wp_delete_file", function ($path) {
 
