@@ -43,11 +43,9 @@ class UploadsSync
   protected function setupActions()
   {
     /**
-     * Catches when an attachment is created (`add_attachment`
-     * runs before metadata is even created) or modified.
-     * @var string
+     * After an image is initially uploaded into the system and all crops created
      */
-    add_filter("wp_update_attachment_metadata", function ($meta, $id) {
+    add_filter("wp_generate_attachment_metadata", function ($meta, $id) {
 
       $path = get_attached_file($id);
       $file = new UploadsSync\Attachment($path, $meta);
