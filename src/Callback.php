@@ -37,11 +37,11 @@ class Callback
     $this->gearmanClient->addServer($server->hostname);
   }
 
-  public function onUpload($filename, $url, $type)
+  public function onUpload($filename, $url, $context)
   {
-    $this->logger->addInfo('callback', [$filename, $url, $type]);
+    $this->logger->addInfo('callback', [$filename, $url, $context]);
 
-    if ($type === 'recropped') {
+    if ($context === 'recropped') {
       $this->gearmanClient->doBackground("{$this->namespace}_invalidate_urls", json_encode([
         'urls' => [$url]
       ]));

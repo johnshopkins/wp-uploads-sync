@@ -75,26 +75,26 @@ class UploadsSync
   protected function setupActions()
   {
     /**
-     * After an image is initially uploaded into the system and all crops created
+     * After an image is initially uploaded into the system
+     * and all crops created OR when an image is replaced
      */
-    add_filter("wp_generate_attachment_metadata", function ($meta, $id) {
+    add_filter('wp_generate_attachment_metadata', function ($meta, $id, $context) {
 
+      // Note: context is 'create' for both initial upload and also replace
+      
       $path = get_attached_file($id);
       $file = new UploadsSync\Attachment($path, $meta);
 
-      $this->upload($id, $file);
+      $this->upload($id, $file, $context);
 
       return $meta;
 
-    }, 10, 2);
+    }, 10, 3);
 
     /**
      * After an image has been recropped with the crop-thumbnails plugin
      * https://github.com/vollyimnetz/crop-thumbnails#filter-crop_thumbnails_before_update_metadata
      */
-
-
-
     add_filter('crop_thumbnails_before_update_metadata', function ($meta, $id) {
 
       $changed = $this->findImagesThatChanged($id, $meta);
@@ -129,7 +129,7 @@ class UploadsSync
   /**
    * Syncs images to NetStorage.
    */
-  public function upload($id, $file, $type = 'initial upload', $changed = [])
+  public function upload($id, $file, $context = 'initial upload', $changed = [])
   {
     global $wpdb;
 
@@ -146,7 +146,7 @@ class UploadsSync
         'source' => $file->source,
         'filenames' => [$details['filename']],
         'urls' => [$details['url']],
-        'type' => $type
+        'context' => $context
       ];
 
       $handle = $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
@@ -158,7 +158,7 @@ class UploadsSync
         'fid' => $id,
         'site' => get_current_blog_id(),
         'style' => $style,
-        'type' => $type,
+        'context' => $context,
         'handle' => $handle
       ];
 
@@ -172,7 +172,6 @@ class UploadsSync
         $this->logger->addWarning('Failed to insert data into `file_sync` table', $row);
       }
     }
-  }
   }
 
   /**
