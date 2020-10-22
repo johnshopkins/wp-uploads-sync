@@ -49,7 +49,8 @@ class UploadsSync
 
       $path = get_attached_file($id);
       $file = new UploadsSync\Attachment($path, $meta);
-      $this->upload($id, $file->homepath, $file->source, $file->filenames, $file->getUrls());
+
+      $this->upload($id, $file);
 
       return $meta;
 
@@ -63,7 +64,7 @@ class UploadsSync
       @unlink($path);
 
       // initialize rsync
-      $this->delete($file->homepath, $file->source, $file->filenames);
+      $this->delete($file);
 
       // return empty array so WP doesn't try to delete too
       return array();
@@ -73,37 +74,38 @@ class UploadsSync
 
   /**
    * Syncs images to NetStorage.
-   * @param  integer $id        WordPress homepath (ex: /var/www/html/hub/public/)
-   * @param  string  $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
-   * @param  string  $source    File location relative to homepath
-   * @param  array   $filenames Names of files to upload
-   * @param  array   $urls      URLs that need their cache busted
    */
-  public function upload($id, $homepath, $source, $filenames, $urls)
+  public function upload($id, $file, $type = 'initial upload', $changed = [])
   {
-    $data = array(
-      "homepath" => $homepath,
-      "source" => $source,
-      "filenames" => $filenames
-    );
+    $files = $file->getFilenamesAndUrls($changed);
+    $this->logger->addInfo('upload', $files);
 
-    $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
+    foreach ($files as $style => $details) {
+
+      // create the gearman job
+
+      $data = [
+        'homepath' => $file->homepath,
+        'source' => $file->source,
+        'filenames' => [$details['filename']],
+        'urls' => [$details['url']],
+        'type' => $type
+      ];
+
+      $handle = $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
 
   }
 
   /**
    * Delete a file in NetStorage
-   * @param  string $homepath  WordPress homepath (ex: /var/www/html/hub/public/)
-   * @param  string $source    File location relative to homepath
-   * @param  array  $filenames Names of files to delete
    */
-  public function delete($homepath, $source, $filenames)
+  public function delete($file)
   {
-    $data = array(
-      "homepath" => $homepath,
-      "source" => $source,
-      "filenames" => $filenames
-    );
+    $data = [
+      'homepath' => $file->homepath,
+      'source' => $file->source,
+      'filenames' => $file->getFilenames()
+    ];
 
     $this->gearmanClient->doBackground("{$this->namespace}_delete", json_encode($data));
   }

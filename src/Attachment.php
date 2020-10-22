@@ -54,7 +54,7 @@ class Attachment
     // get relative source directory
     $this->source = str_replace($this->homepath, "", $uploadDirectory); // assets/uploads/2016/08
 
-    $this->getFilenames($meta);
+    $this->setFilenames($meta);
   }
 
   /**
@@ -73,22 +73,57 @@ class Attachment
    * @param array $meta Attachment metadata
    * @return null
    */
-  protected function getFilenames($meta)
+  protected function setFilenames($meta)
   {
-    $this->filenames[] = basename($this->path);
+    $this->filenames['original'] = basename($this->path);
 
-    if (!isset($meta["sizes"])) return; // non-image
+    if (!isset($meta['sizes'])) {
+      // not an image
+      return;
+    }
 
-    foreach ($meta["sizes"] as $crop) {
-      $this->filenames[] = $crop["file"];
+    foreach ($meta['sizes'] as $size => $crop) {
+      $this->filenames[$size] = $crop['file'];
     }
   }
 
-  public function getUrls()
+  protected function getSizes($sizes = [])
+  {
+    $allsizes = array_keys($this->filenames);
+
+    if (empty($sizes)) {
+      $sizes = $allsizes;
+    } else {
+      // get rid of invalid sizes
+      $sizes = array_intersect($allsizes, $sizes);
+    }
+
+    return $sizes;
+  }
+
+  protected function getItemsByKeys($keys, $array)
+  {
+    return array_intersect_key($array, array_flip($keys));
+  }
+
+  public function getFilenames($sizes = [])
+  {
+    $sizes = $this->getSizes($sizes);
+    return $this->getItemsByKeys($sizes, $this->filenames);
+  }
+
+  public function getFilenamesAndUrls($sizes = [], $urls = true)
   {
     $homeurl = home_url();
-    return array_map(function ($filename) use ($homeurl) {
-      return "{$homeurl}/{$this->source}/{$filename}";
-    }, $this->filenames);
+
+    $files = array_map(function ($file) use ($homeurl, $urls) {
+      $data = ['filename' => $file];
+      if ($urls) {
+        $data['url'] = "{$homeurl}/{$this->source}/{$file}";
+      }
+      return $data;
+    }, $this->getFilenames($sizes));
+
+    return $files;
   }
 }
