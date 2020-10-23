@@ -78,9 +78,21 @@ class UploadsSync
      * After an image is initially uploaded into the system
      * and all crops created OR when an image is replaced
      */
-    add_filter('wp_generate_attachment_metadata', function ($meta, $id, $context) {
+    add_filter('wp_generate_attachment_metadata', function ($meta, $id) {
 
-      // Note: context is 'create' for both initial upload and also replace
+      // check for a database record for this image. if there is on
+      // this is a replace
+
+      global $wpdb;
+
+      $sql = "SELECT * FROM file_sync WHERE fid = %d ";
+      $records = $wpdb->get_results($wpdb->prepare($sql, $id), ARRAY_A);
+
+      if (!empty($records)) {
+        $context = 'replace';
+      } else {
+        $context = 'initial upload';
+      }
       
       $path = get_attached_file($id);
       $file = new UploadsSync\Attachment($path, $meta);
@@ -151,7 +163,24 @@ class UploadsSync
 
       $handle = $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
 
+      // archive old job
+      if ($context !== 'initial upload') {
+        // archive old job
+        $result = $wpdb->update(
+          'file_sync',
+          ['archived' => 1], // update date
+          ['fid' => $id, 'style' => $style],    // where
+          ['%d'],            // data format
+          ['%d', '%s']       // where format
+        );
+
+        if ($result === false) {
+          $site = get_current_blog_id();
+          $this->logger->addWarning("Failed to archive old jobs for site: {$site}, file: {$id} `file_sync` table");
+        }
+      }
       
+
       // add the job to the database for status tracking
 
       $row = [
