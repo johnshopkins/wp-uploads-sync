@@ -74,6 +74,22 @@ class UploadsSync
 
   protected function setupActions()
   {
+    // reruns gearman job
+    add_action('wp_ajax_rerun_gearman_job', function () {
+
+      $id = (int) $_REQUEST['id'];
+      $crop = $_REQUEST['crop'];
+
+      $path = get_attached_file($id);
+      $meta = wp_get_attachment_metadata($id);
+      $file = new UploadsSync\Attachment($path, $meta);
+
+      $this->upload($id, $file, 'rerun', [$crop]);
+
+      return wp_send_json(['success' => true]);
+
+    });
+
     /**
      * After an image is initially uploaded into the system
      * and all crops created OR when an image is replaced
@@ -220,3 +236,8 @@ class UploadsSync
 
 $servers = Secret::get("jhu", ENV, "servers");
 new UploadsSync($dependencies["logger_gearman"], "jhu", $servers);
+
+add_action('after_setup_theme', function () {
+  global $dependencies;
+  new UploadsSync\Admin($dependencies['logger_wp']);
+});
