@@ -8,25 +8,24 @@ class AdminUploadThumbnailView extends Admin
   {
     parent::__construct($logger);
 
-    // // adapted from:
-    // // https://wordpress.org/support/topic/override-the-template-for-the-attachment-thumbnails-in-the-media-grid/
-    // add_action('admin_footer-upload.php', function () {
-    //   echo $this->getTemplate();
+    // adapted from:
+    // https://wordpress.org/support/topic/override-the-template-for-the-attachment-thumbnails-in-the-media-grid/
+    add_action('admin_footer-upload.php', function () {
+      echo $this->getTemplate();
 
-		// 	$dir = plugin_dir_url(dirname(__FILE__));
-    // 	echo '"<script type="text/javascript" src="'. $dir . 'dist/js/thumbnail-view.js"></script>"';
-		// });
+			$dir = plugin_dir_url(dirname(__FILE__));
+    	echo '"<script type="text/javascript" src="'. $dir . 'dist/js/thumbnail-view.js"></script>"';
+		});
 
     add_filter('wp_prepare_attachment_for_js', function ($response, $attachment, $meta) {
 
 			// how to force update of tmpl-attachment-custom when this updates?
 
-      $response['uploading'] = !$this->getStatus($attachment->ID);
+      $response['synced'] = $this->getStatus($attachment->ID);
       return $response;
     }, 10, 3);
   }
 
-	/*
   protected function getTemplate()
   {
     ?>
@@ -34,7 +33,12 @@ class AdminUploadThumbnailView extends Admin
 		<div class="attachment-preview js--select-attachment type-{{ data.type }} subtype-{{ data.subtype }} {{ data.orientation }}">
 			<div class="thumbnail">
 				<# if ( data.uploading ) { #>
-          <div class="media-progress-bar"><div style="width: {{ data.percent }}%"></div></div>
+					<div class="media-progress-bar"><div style="width: {{ data.percent }}%"></div></div>
+				<# } else if ( !data.synced ) { #>
+						<p>Syncing to Akamai...</p>
+						<p><span class="spinner is-active"></span></p>
+						<p>Reload for status update.</p>
+					</div>
 				<# } else if ( 'image' === data.type && data.sizes ) { #>
 					<div class="centered">
 						<img src="{{ data.size.url }}" draggable="false" alt="" />
@@ -85,7 +89,6 @@ class AdminUploadThumbnailView extends Admin
   </script>
   <?php
 	}
-	*/
 
   protected function getOverrideJS()
   {
