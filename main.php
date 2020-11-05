@@ -86,7 +86,8 @@ class UploadsSync
 
       $this->upload($id, $file, 'rerun', [$crop]);
 
-      return wp_send_json(['success' => true]);
+      echo json_encode(['status' => 'uploading']);
+      die();
 
     });
 
