@@ -12,8 +12,8 @@ class UploadsSync
 {
   public function __construct($logger, $namespace, $servers)
   {
-    // if not production AND DEBUG is false
-    if ((defined("ENV") && ENV != "production") && (defined("DEBUG") && !DEBUG)) return;
+    // // if not production AND DEBUG is false
+    // if ((defined("ENV") && ENV != "production") && (defined("DEBUG") && !DEBUG)) return;
 
     $this->logger = $logger;
     $this->namespace = $namespace;
@@ -239,4 +239,17 @@ class UploadsSync
 
 add_action('admin_init', function () use ($dependencies) {
   global $dependencies;
+
+  $servers = Secret::get("jhu", ENV, "servers");
+  new UploadsSync($dependencies["logger_gearman"], "jhu", $servers);
+  
+  // upload.php list view
+  new UploadsSync\AdminUploadListView($dependencies['logger_wp']);
+
+  // upload.php modal view spawned from thumbnail view
+  new UploadsSync\AdminUploadModalView($dependencies['logger_wp']);
+
+  // individual file view
+  new UploadsSync\AdminUploadFileView($dependencies['logger_wp']);
+
 });

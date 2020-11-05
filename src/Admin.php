@@ -7,38 +7,27 @@ class Admin
   public function __construct($logger)
   {
     $this->logger = $logger;
-    
-    add_filter('attachment_fields_to_edit', [$this, 'addDataToMediaPage'], 10, 2);
-
-    add_action('admin_enqueue_scripts', function () {
-      $dir = plugin_dir_url(dirname(__FILE__));
-      wp_enqueue_script('wp-uploads-sync-rerun-js', $dir . 'dist/js/rerun.js', ['wp-api-fetch', 'wp-url'], false, true);
-      wp_enqueue_style('wp-uploads-sync-admin-css', $dir . 'dist/css/admin.css');
-    });
   }
 
-  public function addDataToMediaPage($form_fields, $post)
+  public function getStatusIcon($id)
   {
-    $form_fields['uploadsync'] = array(
-      'label' => '&nbsp;',
-      'input' => 'html',
-      'html' => $this->getTable($post)
-    );
+    $success = $this->getStatus($id);
     
-    return $form_fields;
+    $iconClass = $success ? 'dashicons dashicons-yes-alt' : 'spinner is-active';
+    $icon = '<span class="' . $iconClass . '"></span>';
+
+    $link = '<a href="' . site_url() . '/wp-admin/post.php?post=' . $id. '&action=edit#sync-status">See details</a>';
+
+    return $icon . ' ' . $link;
   }
 
-  protected function getTable($post)
+
+  public function getStatus($id)
   {
-    $table = new SyncStatusTable($post);
-    $table->prepare_items();
+    global $wpdb;
+    
+    $results = $wpdb->get_results($wpdb->prepare('SELECT fid FROM file_sync fs WHERE fs.fid = %d AND status = 0 AND archived = 0 GROUP BY fid', $id));
 
-    // capture function output
-    ob_start();
-    $table->display();
-    $data = ob_get_contents();
-    ob_end_clean();
-
-    return $data;
+    return empty($results);
   }
 }

@@ -1,7 +1,6 @@
 const buttons = document.querySelectorAll('table.sync-status button.rerun');
 
 for (var i = 0; i < buttons.length; i++) {
-  console.log(buttons[i])
   buttons[i].addEventListener('click', function (e) {
     e.preventDefault();
 
@@ -12,8 +11,10 @@ for (var i = 0; i < buttons.length; i++) {
     };
 
     wp.apiFetch({
+      method: 'POST',
       url: wp.url.addQueryArgs('/wp/wp-admin/admin-ajax.php', data)
-    }).then(data => {
+    }).then(response => {
+      console.log(response);
       e.target.outerHTML = '<span class="spinner is-active"></span>';
     });
 

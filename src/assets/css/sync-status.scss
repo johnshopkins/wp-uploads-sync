@@ -1,0 +1,47 @@
+// sync status in media modal (from upload.php thumbnail view)
+.media-modal {
+  tr.compat-field-uploadsync {
+    td {
+      padding-top: 8px;
+    }
+  }
+}
+
+// sync status in individual file view
+// hide in favor of entire sync status table
+#poststuff {
+  .compat-field-uploadsync {
+    display: none !important;
+  }
+
+  .media-types-required-info {
+    display: none;
+  }
+}
+
+.media-modal tr.compat-field-uploadsync,
+table.media,
+table.sync-status {
+  .dashicons-yes-alt { color:#46b450; }
+
+  .dashicons-warning { color:#ffb900; }
+
+  .spinner.is-active {
+    float:none;
+    margin:0;
+  }
+}
+
+// upload.php list view
+table.media {
+  .column-sync-status {
+    width: 15%;
+  }
+}
+
+// individual file view
+table.sync-status {
+  .archived {
+    opacity: 0.5;
+  }
+}

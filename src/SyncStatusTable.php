@@ -15,6 +15,15 @@ class SyncStatusTable extends \WP_List_Table
     parent::__construct([]);
   }
 
+  protected function display_tablenav($which)
+  {
+    return '';
+  }
+
+  public function no_items() {
+		_e('No data found.');
+	}
+
   public function get_table_classes()
   {
     $classes = parent::get_table_classes();
