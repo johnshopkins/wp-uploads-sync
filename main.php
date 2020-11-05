@@ -245,6 +245,9 @@ add_action('admin_init', function () use ($dependencies) {
   
   // upload.php list view
   new UploadsSync\AdminUploadListView($dependencies['logger_wp']);
+  
+  // upload.php thumbnail view
+  new UploadsSync\AdminUploadThumbnailView($dependencies['logger_wp']);
 
   // upload.php modal view spawned from thumbnail view
   new UploadsSync\AdminUploadModalView($dependencies['logger_wp']);
