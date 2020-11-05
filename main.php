@@ -164,8 +164,6 @@ class UploadsSync
 
     $files = $file->getFilenamesAndUrls($changed);
 
-    $this->logger->addInfo('upload', $files);
-
     foreach ($files as $style => $details) {
 
       // create the gearman job
@@ -177,6 +175,8 @@ class UploadsSync
         'urls' => [$details['url']],
         'context' => $context
       ];
+
+      // $this->logger->addInfo('upload', $data);
 
       $handle = $this->gearmanClient->doHighBackground("{$this->namespace}_upload", json_encode($data));
 
@@ -230,6 +230,8 @@ class UploadsSync
       'source' => $file->source,
       'filenames' => $file->getFilenames()
     ];
+
+    // $this->logger->addInfo('delete', $data);
 
     $this->gearmanClient->doBackground("{$this->namespace}_delete", json_encode($data));
   }
