@@ -37,14 +37,45 @@ class Callback
     $this->gearmanClient->addServer($server->hostname);
   }
 
-  public function onUpload($filename, $url, $context)
+  public function onUploadFail($handle, $error)
   {
-    $this->logger->addInfo('callback', [$filename, $url, $context]);
+    global $wpdb;
 
-    if ($context === 'recropped') {
+    $result = $wpdb->update(
+      'file_sync',
+      ['error' => $error],   // update date
+      ['handle' => $handle], // where
+      ['%s'],                // data format
+      ['%s']                 // where format
+    );
+
+    if ($result === false) {
+      $this->logger->addWarning("Failed to report error for handle: {$handle} in `file_sync` table.", ['error' => $error]);
+    }
+  }
+
+  public function onUploadSuccess($handle, $filename, $url, $context)
+  {
+    global $wpdb;
+
+    if ($context !== 'initial upload') {
       $this->gearmanClient->doBackground("{$this->namespace}_invalidate_urls", json_encode([
         'urls' => [$url]
       ]));
+    }
+
+    // change status to 1
+
+    $result = $wpdb->update(
+      'file_sync',
+      ['status' => 1],       // update date
+      ['handle' => $handle], // where
+      ['%d'],                // data format
+      ['%s']                 // where format
+    );
+
+    if ($result === false) {
+      $this->logger->addWarning("Failed to change status to `1` for handle: {$handle} in `file_sync` table.");
     }
   }
 }
