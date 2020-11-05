@@ -10,8 +10,8 @@ class Callback
 {
   public function __construct($logger, $namespace, $servers)
   {
-    // // if not production AND DEBUG is false
-    // if ((defined("ENV") && ENV != "production") && (defined("DEBUG") && !DEBUG)) return;
+    // if not production AND DEBUG is false
+    if ((defined("ENV") && ENV != "production") && (defined("DEBUG") && !DEBUG)) return;
 
     $this->logger = $logger;
     $this->namespace = $namespace;
