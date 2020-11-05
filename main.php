@@ -234,10 +234,6 @@ class UploadsSync
   }
 }
 
-$servers = Secret::get("jhu", ENV, "servers");
-new UploadsSync($dependencies["logger_gearman"], "jhu", $servers);
-
-add_action('after_setup_theme', function () {
+add_action('admin_init', function () use ($dependencies) {
   global $dependencies;
-  new UploadsSync\Admin($dependencies['logger_wp']);
 });
