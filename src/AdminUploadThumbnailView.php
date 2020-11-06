@@ -20,7 +20,6 @@ class AdminUploadThumbnailView extends Admin
     add_filter('wp_prepare_attachment_for_js', function ($response, $attachment, $meta) {
 
 			// how to force update of tmpl-attachment-custom when this updates?
-
       $response['synced'] = $this->getStatus($attachment->ID);
       return $response;
     }, 10, 3);
@@ -34,10 +33,15 @@ class AdminUploadThumbnailView extends Admin
 			<div class="thumbnail">
 				<# if ( data.uploading ) { #>
 					<div class="media-progress-bar"><div style="width: {{ data.percent }}%"></div></div>
-				<# } else if ( !data.synced ) { #>
+				<# } else if ( data.synced === 1 ) { #>
 						<p>Syncing to Akamai...</p>
 						<p><span class="spinner is-active"></span></p>
 						<p>Reload for status update.</p>
+					</div>
+				<# } else if ( data.synced === 2 ) { #>
+						<p>Syncing to Akamai failed.</p>
+						<p><span class="dashicons dashicons-warning"></span></p>
+						<p><a href="'/wp-admin/post.php?post={{ data.id }}&action=edit#sync-status">See details</a></p>
 					</div>
 				<# } else if ( 'image' === data.type && data.sizes ) { #>
 					<div class="centered">
