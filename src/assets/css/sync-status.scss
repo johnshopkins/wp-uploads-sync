@@ -43,5 +43,9 @@ table.media {
 table.sync-status {
   .archived {
     opacity: 0.5;
+
+    button {
+      display: none;
+    }
   }
 }
