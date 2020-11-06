@@ -15,8 +15,10 @@ class AdminUploadFileView extends Admin
     });
 
     add_action('edit_form_after_editor', function ($post) {
-      echo '<p id="sync-status"><strong>File sync status</strong></p>';
-      echo $this->getTable($post);
+      if ($post->post_type === 'attachment') {
+        echo '<p id="sync-status"><strong>File sync status</strong></p>';
+        echo $this->getTable($post);
+      }
     });
   }
 
