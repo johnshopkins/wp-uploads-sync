@@ -58,11 +58,11 @@ class Callback
   {
     global $wpdb;
 
-    if ($context !== 'initial upload') {
+    // if ($context !== 'initial upload') {
       $this->gearmanClient->doBackground("{$this->namespace}_invalidate_urls", json_encode([
         'urls' => [$url]
       ]));
-    }
+    // }
 
     // change status to 1
 
