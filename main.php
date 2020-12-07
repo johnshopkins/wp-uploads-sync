@@ -97,6 +97,7 @@ class UploadsSync
      */
     add_filter('wp_generate_attachment_metadata', function ($meta, $id) {
 
+
       // check for a database record for this image. if there is on
       // this is a replace
 
@@ -237,7 +238,8 @@ class UploadsSync
   }
 }
 
-add_action('admin_init', function () use ($dependencies) {
+function wp_uploads_sync_init()
+{
   global $dependencies;
 
   $servers = Secret::get("jhu", ENV, "servers");
@@ -254,5 +256,7 @@ add_action('admin_init', function () use ($dependencies) {
 
   // individual file view
   new UploadsSync\AdminUploadFileView($dependencies['logger_wp']);
+}
 
-});
+add_action('rest_api_init', 'wp_uploads_sync_init');
+add_action('admin_init', 'wp_uploads_sync_init');
